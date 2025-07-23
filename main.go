@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/pratyush934/sibling-bond-server/db"
+	"github.com/pratyush934/sibling-bond-server/database"
 	"github.com/pratyush934/sibling-bond-server/models"
 	"github.com/pratyush934/sibling-bond-server/utils"
 	"net/http"
@@ -13,14 +13,14 @@ var (
 )
 
 func LoadDB() {
-	if err := db.InitDB(); err != nil {
+	if err := database.InitDB(); err != nil {
 		panic(models.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Issue while connecting LOAD DB",
 			InternalError: err,
 		})
 	}
-	if err := db.DB.AutoMigrate(&models.User{}, &models.Address{}, &models.Role{}, &models.OrderItem{}, &models.Order{}, &models.Product{}, &models.Product{}, &models.Category{}); err != nil {
+	if err := database.DB.AutoMigrate(&models.User{}, &models.Address{}, &models.Role{}, &models.OrderItem{}, &models.Order{}, &models.Product{}, &models.Product{}, &models.Category{}); err != nil {
 		panic(models.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Issue while migrating models to DB",
