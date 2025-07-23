@@ -13,8 +13,8 @@ func ValidateUser(next http.Handler) http.Handler {
 
 		token := GetToken(request)
 
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			ctx := context.WithValue(request.Context(), "userid", claims["id"])
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			ctx := context.WithValue(request.Context(), "userId", claims["id"])
 			ctx = context.WithValue(ctx, "email", claims["email"])
 			ctx = context.WithValue(ctx, "role", claims["role"])
 			ctx = context.WithValue(ctx, "name", claims["name"])
@@ -40,8 +40,17 @@ func ValidateAdmin(next http.Handler) http.Handler {
 		claims, ok := token.Claims.(jwt.MapClaims)
 		role := (uint)(claims["role"].(float64))
 
-		if ok && role == 2 {
-			ctx := context.WithValue(request.Context(), "userid", claims["id"])
+		if ok && token.Valid {
+
+			if role != 2 {
+				panic(models.HTTPError{
+					Status:        http.StatusForbidden,
+					Message:       "Admin access required",
+					InternalError: fmt.Errorf("user role %d is not admin (required: 2)", role),
+				})
+			}
+
+			ctx := context.WithValue(request.Context(), "userId", claims["id"])
 			ctx = context.WithValue(ctx, "email", claims["email"])
 			ctx = context.WithValue(ctx, "role", claims["role"])
 			ctx = context.WithValue(ctx, "name", claims["name"])
@@ -65,6 +74,34 @@ func ValidateTenant(next http.Handler) http.Handler {
 		token := GetToken(request)
 
 		claims, ok := token.Claims.(jwt.MapClaims)
+
+		role := (uint)(claims["role"].(float64))
+
+		if ok && token.Valid {
+
+			if role != 3 {
+				panic(models.HTTPError{
+					Status:        http.StatusForbidden,
+					Message:       "Tenant access required",
+					InternalError: fmt.Errorf("user role %d is not tenant (required: 3)", role),
+				})
+			}
+
+			ctx := context.WithValue(request.Context(), "userId", claims["id"])
+			ctx = context.WithValue(ctx, "email", claims["email"])
+			ctx = context.WithValue(ctx, "role", claims["role"])
+			ctx = context.WithValue(ctx, "name", claims["name"])
+
+			request = request.WithContext(ctx)
+		} else {
+			panic(models.HTTPError{
+				Status:        http.StatusUnauthorized,
+				Message:       "there is token while validating the Token for tenant role, the call is from ValidateTenant",
+				InternalError: fmt.Errorf("look at the Validate Middleware, I think user is not tenant"),
+			})
+		}
+
+		next.ServeHTTP(writer, request)
 
 	})
 }
