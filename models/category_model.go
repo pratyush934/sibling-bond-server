@@ -3,6 +3,7 @@ package models
 import (
 	"github.com/google/uuid"
 	"github.com/pratyush934/sibling-bond-server/database"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 	"time"
 )
@@ -39,6 +40,7 @@ func (c *Category) BeforeCreate(tx *gorm.DB) error {
 
 func (c *Category) CreateCategory() (*Category, error) {
 	if err := database.DB.Create(c).Error; err != nil {
+		log.Err(err).Msg("Issue exist in CreateCategory")
 		return &Category{}, err
 	}
 	return c, nil
@@ -47,7 +49,37 @@ func (c *Category) CreateCategory() (*Category, error) {
 func GetCategoryById(id string) (*Category, error) {
 	var category Category
 	if err := database.DB.Where(&Category{Id: id}).First(&category).Error; err != nil {
+		log.Err(err).Msg("Issue exist in GetCategoryById")
 		return &category, err
 	}
 	return &category, nil
+}
+
+func GetCategoryByName(name string) (*Category, error) {
+	var category Category
+	if err := database.DB.Where(&Category{Name: name}).First(&category).Error; err != nil {
+		log.Err(err).Msg("Issue exist in GetCategoryByName")
+		return &category, err
+	}
+	return &category, nil
+}
+
+func UpdateCategory(category *Category) (*Category, error) {
+	if err := database.DB.Updates(category).Error; err != nil {
+		log.Err(err).Msg("Issue exist in UpdateCategory")
+		return &Category{}, err
+	}
+	return category, nil
+}
+
+func Delete(id string) error {
+	return database.DB.Where(&Category{Id: id}).Delete(&Category{}).Error
+}
+
+func GetAll() (*[]Category, error) {
+	var categories []Category
+	if err := database.DB.Find(&categories).Error; err != nil {
+		return nil, err
+	}
+	return &categories, nil
 }
