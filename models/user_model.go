@@ -88,7 +88,7 @@ func DeleteUser(id string) error {
 
 func GetAllUsers(offset, limit int) ([]User, error) {
 	var users []User
-	if err := database.DB.Limit(limit).Offset(offset).Find(&user).Error; err != nil {
+	if err := database.DB.Limit(limit).Offset(offset).Find(&users).Error; err != nil {
 		log.Err(err).Msg("Issue while getting all the users")
 		return users, err
 	}
