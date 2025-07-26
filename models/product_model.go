@@ -1,10 +1,12 @@
 package models
 
 import (
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/pratyush934/sibling-bond-server/database"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
+	"strings"
 	"time"
 )
 
@@ -37,7 +39,43 @@ type Product struct {
 
 func (p *Product) BeforeCreate(t *gorm.DB) error {
 	p.Id = uuid.New().String()
+	p.CreatedAt = time.Now()
+	p.UpdatedAt = time.Now()
+
+	if p.SKU == "" {
+		p.SKU = generateSKU(p.Name, p.CategoryId)
+	}
+
+	if p.MinStockLevel == 0 {
+		p.MinStockLevel = 5
+	}
+	if p.MaxStockLevel == 0 {
+		p.MaxStockLevel = 100
+	}
+
+	if p.ReorderPoint == 0 {
+		p.ReorderPoint = 10
+	}
+
 	return nil
+}
+
+func (p *Product) BeforeUpdate(t *gorm.DB) error {
+	p.UpdatedAt = time.Now()
+	return nil
+}
+
+func generateSKU(productName, categoryId string) string {
+	prefix := strings.ToUpper(productName[:min(3, len(productName))])
+	suffix := uuid.New().String()[:8]
+	return fmt.Sprintf("%s-%s-%s", prefix, categoryId[:8], suffix)
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func (p *Product) CreateProduct() (*Product, error) {
@@ -48,13 +86,103 @@ func (p *Product) CreateProduct() (*Product, error) {
 	return p, nil
 }
 
+func (p *Product) IsInStock() bool {
+	return p.Stock > 0 && p.IsActive
+}
+
+func (p *Product) IsLowStock() bool {
+	return p.Stock <= p.ReorderPoint
+}
+
+func (p *Product) CanFulFillOrder(quantity int) bool {
+	return p.Stock >= quantity && p.IsActive
+}
+
+func (p *Product) UpdateStock(quantity int, operation string) error {
+
+	switch operation {
+	case "add":
+		p.Stock += quantity
+	case "subtract":
+		if p.Stock < quantity {
+			return fmt.Errorf("stock is 0 can't add the stuff")
+		}
+		p.Stock -= quantity
+	case "set":
+		p.Stock = quantity
+	default:
+		return fmt.Errorf("please add valid operation")
+	}
+	return database.DB.Save(p).Error
+}
+
+func (p *Product) GetStockStatus() string {
+	if p.Stock == 0 {
+		return "out_of_stocks"
+	} else if p.IsLowStock() {
+		return "low_stocks"
+	} else {
+		return "in_stock"
+	}
+}
+
+func (p *Product) ReserveStock(quantity int) error {
+	if !p.CanFulFillOrder(quantity) {
+		return fmt.Errorf("can not full fill the order")
+	}
+	return p.UpdateStock(quantity, "subtract")
+}
+
+func (p *Product) RestoreStock(quantity int) error {
+	return p.UpdateStock(quantity, "add")
+}
+
+func (p *Product) SoftDelete() error {
+	return database.DB.Delete(p).Error
+}
+
+func (p *Product) Restore() error {
+	return database.DB.Unscoped().Model(p).Update("deleted_at", nil).Error
+}
+
+func (p *Product) ToggleActive() error {
+	p.IsActive = !p.IsActive
+	return database.DB.Save(p).Error
+}
+
+func GetDeleteProducts(limit, offset int) ([]Product, error) {
+	var products []Product
+	if err := database.DB.Unscoped().Where("deleted_at IS NOT NULL").Limit(limit).Offset(offset).Find(&products).Error; err != nil {
+		log.Err(err).Msg("Issue getting deleted products")
+		return nil, err
+	}
+	return products, nil
+}
+
 func GetProductById(id string) (*Product, error) {
 	var product Product
-	if err := database.DB.Where(&Product{Id: id}).First(&product).Error; err != nil {
+	if err := database.DB.Preload("Category").Preload("Variants").Where(&Product{Id: id}).First(&product).Error; err != nil {
 		log.Err(err).Msg("Issue exist in GetProductById")
-		return &product, err
+		return nil, err
 	}
 	return &product, nil
+}
+func GetLowStockProducts() ([]Product, error) {
+	var products []Product
+	if err := database.DB.Where("stock <= reorder_point AND is_active = ?", true).Find(&products).Error; err != nil {
+		log.Err(err).Msg("Issue exist in getting LowStockProduct")
+		return nil, err
+	}
+	return products, nil
+}
+
+func GetOutOfStockProducts() ([]Product, error) {
+	var products []Product
+	if err := database.DB.Where("stock = 0 AND is_active = ?", true).Find(&products).Error; err != nil {
+		log.Err(err).Msg("Issue exist in getting OutOfStock")
+		return nil, err
+	}
+	return products, nil
 }
 
 func UpdateProduct(p *Product) (*Product, error) {
@@ -91,7 +219,7 @@ func GetAllProducts(limit, offSet int, categoryId, searchQuery string) ([]Produc
 }
 
 func UpdateStock(productId string, quantityChange int) error {
-	if err := database.DB.Model(&Product{}).Where("id = ?", productId).Update("stock_quantity", gorm.Expr("stock_quantity + ?", quantityChange)).Error; err != nil {
+	if err := database.DB.Model(&Product{}).Where("id = ?", productId).Update("stock", gorm.Expr("stock + ?", quantityChange)).Error; err != nil {
 		log.Err(err).Msg("Issue exist in UpdateStock")
 		return err
 	}

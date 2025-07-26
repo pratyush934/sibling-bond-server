@@ -17,7 +17,7 @@ type Order struct {
 	OrderedAt         time.Time   `json:"orderedAt"`
 	TotalAmount       int         `json:"totalAmount"`
 	ShippingAddressId string      `gorm:"not null" json:"shippingAddressId"`
-	ShippingAddress   Address     `gorm:"constraint:onUpdate:CASCADE onDelete:CASCADE"  json:"address"`
+	ShippingAddress   Address     `gorm:"foreignKey:ShippingAddressId;constraint:onUpdate:CASCADE,onDelete:CASCADE"  json:"address"`
 	Status            string      `json:"status"`
 	PaymentStatus     string      `json:"paymentStatus"`
 	PaymentMode       string      `json:"paymentMode"`

@@ -40,7 +40,7 @@ func (c *Category) BeforeCreate(tx *gorm.DB) error {
 func (c *Category) CreateCategory() (*Category, error) {
 	if err := database.DB.Create(c).Error; err != nil {
 		log.Err(err).Msg("Issue exist in CreateCategory")
-		return &Category{}, err
+		return nil, err
 	}
 	return c, nil
 }
@@ -49,7 +49,7 @@ func GetCategoryById(id string) (*Category, error) {
 	var category Category
 	if err := database.DB.Where(&Category{Id: id}).First(&category).Error; err != nil {
 		log.Err(err).Msg("Issue exist in GetCategoryById")
-		return &category, err
+		return nil, err
 	}
 	return &category, nil
 }
@@ -58,7 +58,7 @@ func GetCategoryByName(name string) (*Category, error) {
 	var category Category
 	if err := database.DB.Where(&Category{Name: name}).First(&category).Error; err != nil {
 		log.Err(err).Msg("Issue exist in GetCategoryByName")
-		return &category, err
+		return nil, err
 	}
 	return &category, nil
 }
@@ -66,12 +66,12 @@ func GetCategoryByName(name string) (*Category, error) {
 func UpdateCategory(category *Category) (*Category, error) {
 	if err := database.DB.Updates(category).Error; err != nil {
 		log.Err(err).Msg("Issue exist in UpdateCategory")
-		return &Category{}, err
+		return nil, err
 	}
 	return category, nil
 }
 
-func Delete(id string) error {
+func DeleteCategory(id string) error {
 	return database.DB.Where(&Category{Id: id}).Delete(&Category{}).Error
 }
 

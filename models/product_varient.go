@@ -1,6 +1,13 @@
 package models
 
-import "time"
+import (
+	"fmt"
+	"github.com/google/uuid"
+	"github.com/pratyush934/sibling-bond-server/database"
+	"gorm.io/gorm"
+	"strings"
+	"time"
+)
 
 type ProductVariant struct {
 	Id           string    `gorm:"primaryKey" json:"id"`
@@ -14,4 +21,28 @@ type ProductVariant struct {
 	IsActive     bool      `gorm:"default:true" json:"isActive"`
 	CreatedAt    time.Time `json:"createdAt"`
 	UpdatedAt    time.Time `json:"updatedAt"`
+}
+
+func (pv *ProductVariant) BeforeCreate(t *gorm.DB) error {
+	pv.Id = uuid.New().String()
+	pv.CreatedAt = time.Now()
+	pv.UpdatedAt = time.Now()
+
+	if pv.SKU == "" {
+		pv.SKU = fmt.Sprintf("%s-%s-%s", pv.ProductId[:8], strings.ToUpper(pv.VariantName[:3]), uuid.New().String()[:6])
+	}
+	return nil
+}
+
+func (pv *ProductVariant) BeforeUpdate(t *gorm.DB) error {
+	pv.UpdatedAt = time.Now()
+	return nil
+}
+
+func GetProductVariants(productId string) ([]ProductVariant, error) {
+	var variants []ProductVariant
+	if err := database.DB.Where("product_id = ? AND is_active = ?", productId, true).Find(&variants).Error; err != nil {
+		return nil, err
+	}
+	return variants, nil
 }

@@ -48,6 +48,11 @@ func (u *User) BeforeCreate(t *gorm.DB) error {
 	return nil
 }
 
+func (u *User) BeforeUpdate(t *gorm.DB) error {
+	u.UpdatedAt = time.Now()
+	return nil
+}
+
 func (u *User) ValidatePassWord(pass string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(u.PassWord), []byte(pass))
 	return err == nil
@@ -119,7 +124,7 @@ func GetUserById(id string) (*User, error) {
 	var user User
 	if err := database.DB.Where(&User{Id: id}).First(&user).Error; err != nil {
 		log.Err(err).Msg("Didn't get the User")
-		return &User{}, err
+		return nil, err
 	}
 	return &user, nil
 }
@@ -128,7 +133,7 @@ func GetUserByEmail(email string) (*User, error) {
 	var user User
 	if err := database.DB.Where(&User{Email: email}).First(&user).Error; err != nil {
 		log.Err(err).Msg("Didn't get the user by email")
-		return &user, err
+		return nil, err
 	}
 	return &user, nil
 }

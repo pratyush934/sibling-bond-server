@@ -34,12 +34,12 @@ func (a *Address) BeforeCreate(t *gorm.DB) error {
 	return nil
 }
 
-func (a *Address) Create(address *Address) (*Address, error) {
+func (a *Address) Create() (*Address, error) {
 	if err := database.DB.Create(a).Error; err != nil {
 		log.Err(err).Msg("Issue persist in Create")
 		return nil, err
 	}
-	return address, nil
+	return a, nil
 }
 
 func GetAddressById(id string) (*Address, error) {

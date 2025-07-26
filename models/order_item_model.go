@@ -13,6 +13,7 @@ type OrderItem struct {
 	Id              string    `gorm:"primaryKey" json:"id"`
 	OrderId         string    `gorm:"not null" json:"orderId"`
 	ProductId       string    `gorm:"not null" json:"productId"`
+	VariantId       *string   `json:"variantId"`
 	Order           Order     `gorm:"foreignKey:OrderId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"order"`
 	Product         Product   `gorm:"foreignKey:ProductId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"product"`
 	Quantity        int       `gorm:"not null" json:"quantity"`
@@ -46,22 +47,32 @@ func (o *OrderItem) Create(orderItem *OrderItem) (*OrderItem, error) {
 func (oi *OrderItem) ValidateOrderItem() error {
 
 	var product Product
-	if err := database.DB.Where("id = ?", oi.ProductId).First(&product).Error; err != nil {
-		return fmt.Errorf("Product Not found %v ", err)
+	if err := database.DB.Preload("Variants").Where("id = ?", oi.ProductId).First(&product).Error; err != nil {
+		return fmt.Errorf("product not found: %s", oi.ProductId)
 	}
 
-	/* check stock availability */
-	if product.StockQuantity < oi.Quantity {
-		return fmt.Errorf("issue persist as the quanity is of product is less")
+	// If variant ID is specified, validate variant stock
+	if oi.VariantId != nil && *oi.VariantId != "" {
+		var variant ProductVariant
+		if err := database.DB.Where("id = ? AND product_id = ?", *oi.VariantId, oi.ProductId).First(&variant).Error; err != nil {
+			return fmt.Errorf("variant not found: %s", *oi.VariantId)
+		}
+
+		if variant.Stock < oi.Quantity {
+			return fmt.Errorf("insufficient variant stock for %s", *oi.VariantId)
+		}
+	} else {
+		// Check main product stock
+		if product.Stock < oi.Quantity {
+			return fmt.Errorf("insufficient stock for product %s", oi.ProductId)
+		}
 	}
 
 	if oi.Quantity <= 0 {
 		return fmt.Errorf("quantity must be greater than 0")
 	}
 
-	if oi.PriceAtPurchase != product.Price {
-		return fmt.Errorf("the price must be same in both product and order model")
-	}
+	return nil
 }
 
 func (oi *OrderItem) UpdateProductStock(tx *gorm.DB) error {
