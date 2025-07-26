@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/pratyush934/sibling-bond-server/database"
 	"github.com/rs/zerolog/log"
@@ -41,6 +42,33 @@ func (o *OrderItem) Create(orderItem *OrderItem) (*OrderItem, error) {
 	}
 	return orderItem, nil
 }
+
+func (oi *OrderItem) ValidateOrderItem() error {
+
+	var product Product
+	if err := database.DB.Where("id = ?", oi.ProductId).First(&product).Error; err != nil {
+		return fmt.Errorf("Product Not found %v ", err)
+	}
+
+	/* check stock availability */
+	if product.StockQuantity < oi.Quantity {
+		return fmt.Errorf("issue persist as the quanity is of product is less")
+	}
+
+	if oi.Quantity <= 0 {
+		return fmt.Errorf("quantity must be greater than 0")
+	}
+
+	if oi.PriceAtPurchase != product.Price {
+		return fmt.Errorf("the price must be same in both product and order model")
+	}
+}
+
+func (oi *OrderItem) UpdateProductStock(tx *gorm.DB) error {
+	return tx.Model(&Product{}).Where("id = ?", oi.ProductId).UpdateColumn("stock", gorm.Expr("stock - ?", oi.Quantity)).Error
+
+}
+
 func CreateMany(orderItem []*OrderItem) error {
 	if err := database.DB.Create(orderItem).Error; err != nil {
 		log.Err(err).Msg("issue persist in CreateMany")

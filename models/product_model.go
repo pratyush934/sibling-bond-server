@@ -9,16 +9,30 @@ import (
 )
 
 type Product struct {
-	Id            string    `gorm:"primaryKey" json:"id"`
-	Name          string    `gorm:"not null" json:"name"`
-	Description   string    `gorm:"not null" json:"description"`
-	Price         int       `gorm:"not null" json:"price"`
-	StockQuantity int       `gorm:"not null" json:"stockQuantity"`
-	CategoryId    string    `json:"categoryId" gorm:"not null"`
-	Category      Category  `json:"category" gorm:"foreignKey:CategoryId"`
-	ImageUrl      string    `json:"imageUrl"`
-	CreatedAt     time.Time `json:"createdAt"`
-	UpdatedAt     time.Time `json:"updatedAt"`
+	Id          string         `gorm:"primaryKey" json:"id"`
+	Name        string         `gorm:"not null" json:"name"`
+	Description string         `json:"description"`
+	Price       int            `gorm:"not null" json:"price"`
+	Stock       int            `gorm:"not null;default:0" json:"stock"`
+	CategoryId  string         `gorm:"not null" json:"categoryId"`
+	Category    Category       `gorm:"foreignKey:CategoryId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"category"`
+	Images      []string       `gorm:"type:json" json:"images"`
+	IsActive    bool           `gorm:"default:true" json:"isActive"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	CreatedAt   time.Time      `json:"createdAt"`
+	UpdatedAt   time.Time      `json:"updatedAt"`
+
+	// Product variants/options
+	Variants []ProductVariant `gorm:"foreignKey:ProductId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"variants"`
+
+	// Inventory management fields
+	MinStockLevel int     `gorm:"default:5" json:"minStockLevel"`
+	MaxStockLevel int     `gorm:"default:100" json:"maxStockLevel"`
+	ReorderPoint  int     `gorm:"default:10" json:"reorderPoint"`
+	SKU           string  `gorm:"unique" json:"sku"`
+	Barcode       string  `json:"barcode"`
+	Weight        float64 `json:"weight"`
+	Dimensions    string  `json:"dimensions"`
 }
 
 func (p *Product) BeforeCreate(t *gorm.DB) error {
