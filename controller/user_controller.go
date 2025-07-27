@@ -68,6 +68,14 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	if login.Email == "" || login.PassWord == "" {
+		panic(cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Email and password are required",
+			InternalError: nil,
+		})
+	}
+
 	userByEmail, err := models.GetUserByEmail(login.Email)
 	if err != nil || !userByEmail.ValidatePassWord(login.PassWord) {
 		panic(cjson.HTTPError{
