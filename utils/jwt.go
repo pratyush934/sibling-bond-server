@@ -3,6 +3,7 @@ package utils
 import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/pratyush934/sibling-bond-server/cjson"
 	"github.com/pratyush934/sibling-bond-server/models"
 	"net/http"
 	"strings"
@@ -37,7 +38,7 @@ func ValidateAdminRole(r *http.Request) {
 	claims, ok := token.Claims.(jwt.MapClaims)
 	roleId := (uint)(claims["role"].(float64))
 	if !ok || !token.Valid || roleId != 2 {
-		panic(models.HTTPError{
+		panic(cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Ye Banda is not admin",
 			InternalError: fmt.Errorf("issue issue issue in admin wala banda"),
@@ -49,7 +50,7 @@ func ValidateToken(r *http.Request) {
 	token := GetToken(r)
 	_, ok := token.Claims.(jwt.MapClaims)
 	if !ok || !token.Valid {
-		panic(models.HTTPError{
+		panic(cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Token claim is not correct",
 			InternalError: nil,
@@ -60,7 +61,7 @@ func ValidateToken(r *http.Request) {
 func GetToken(r *http.Request) *jwt.Token {
 	header, err := GetTokenFromHeader(r)
 	if err != nil {
-		panic(models.HTTPError{
+		panic(cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Issue from GetToken",
 			InternalError: err,
@@ -79,7 +80,7 @@ func GetTokenFromHeader(r *http.Request) (string, error) {
 	str := r.Header.Get("Authorization")
 	split := strings.Split(str, " ")
 	if len(split) != 2 || split[0] != "Bearer" {
-		panic(models.HTTPError{
+		panic(cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Not getting any token or right token from GetTokenFromHeader",
 			InternalError: fmt.Errorf("issue issue"),

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/pratyush934/sibling-bond-server/models"
+	"github.com/pratyush934/sibling-bond-server/cjson"
 	"net/http"
 )
 
@@ -21,7 +21,7 @@ func ValidateUser(next http.Handler) http.Handler {
 
 			request = request.WithContext(ctx)
 		} else {
-			panic(models.HTTPError{
+			panic(cjson.HTTPError{
 				Status:        http.StatusUnauthorized,
 				Message:       "there is an issue while validating the Token, the call is from middleware",
 				InternalError: fmt.Errorf("look at the ValidateUser Middleware, I think the User is not Validated"),
@@ -43,7 +43,7 @@ func ValidateAdmin(next http.Handler) http.Handler {
 		if ok && token.Valid {
 
 			if role != 2 {
-				panic(models.HTTPError{
+				panic(cjson.HTTPError{
 					Status:        http.StatusForbidden,
 					Message:       "Admin access required",
 					InternalError: fmt.Errorf("user role %d is not admin (required: 2)", role),
@@ -57,7 +57,7 @@ func ValidateAdmin(next http.Handler) http.Handler {
 
 			request = request.WithContext(ctx)
 		} else {
-			panic(models.HTTPError{
+			panic(cjson.HTTPError{
 				Status:        http.StatusUnauthorized,
 				Message:       "there is token while validating the Token for admin role, the call is from ValidatedAdmin",
 				InternalError: fmt.Errorf("look at the Validate Middleware, I think user is not admin"),
@@ -80,7 +80,7 @@ func ValidateTenant(next http.Handler) http.Handler {
 		if ok && token.Valid {
 
 			if role != 3 {
-				panic(models.HTTPError{
+				panic(cjson.HTTPError{
 					Status:        http.StatusForbidden,
 					Message:       "Tenant access required",
 					InternalError: fmt.Errorf("user role %d is not tenant (required: 3)", role),
@@ -94,7 +94,7 @@ func ValidateTenant(next http.Handler) http.Handler {
 
 			request = request.WithContext(ctx)
 		} else {
-			panic(models.HTTPError{
+			panic(cjson.HTTPError{
 				Status:        http.StatusUnauthorized,
 				Message:       "there is token while validating the Token for tenant role, the call is from ValidateTenant",
 				InternalError: fmt.Errorf("look at the Validate Middleware, I think user is not tenant"),

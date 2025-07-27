@@ -2,7 +2,7 @@ package utils
 
 import (
 	"encoding/json"
-	"github.com/pratyush934/sibling-bond-server/models"
+	"github.com/pratyush934/sibling-bond-server/cjson"
 	"log"
 	"net/http"
 )
@@ -14,7 +14,7 @@ func ErrorHandler(next http.Handler) http.Handler {
 				if r := recover(); r != nil {
 					writer.Header().Set("Content-Type", "application/json")
 
-					if httpError := r.(*models.HTTPError); httpError != nil {
+					if httpError := r.(*cjson.HTTPError); httpError != nil {
 
 						writer.WriteHeader(httpError.Status)
 
@@ -24,7 +24,7 @@ func ErrorHandler(next http.Handler) http.Handler {
 							log.Printf("Expected Error exist : Status : %v, Message : %v", httpError.Status, httpError.Message)
 						}
 
-						_ = json.NewEncoder(writer).Encode(models.ErrorResponse{
+						_ = json.NewEncoder(writer).Encode(cjson.ErrorResponse{
 							Status:        httpError.Status,
 							Message:       httpError.Message,
 							InternalError: httpError.InternalError,
@@ -36,7 +36,7 @@ func ErrorHandler(next http.Handler) http.Handler {
 
 						log.Printf("Unexpected panic which was not expected %v", r)
 
-						_ = json.NewEncoder(writer).Encode(models.ErrorResponse{
+						_ = json.NewEncoder(writer).Encode(cjson.ErrorResponse{
 							Status:        http.StatusInternalServerError,
 							Message:       "Unexpected Error has happened and we need to fix this",
 							InternalError: nil,
