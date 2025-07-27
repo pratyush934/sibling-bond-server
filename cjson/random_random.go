@@ -2,6 +2,7 @@ package cjson
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"github.com/rs/zerolog/log"
 )
@@ -13,4 +14,9 @@ func CreateRandomToken() string {
 		return ""
 	}
 	return hex.EncodeToString(bytes)
+}
+
+func HashRawToken(raw string) string {
+	sum224 := sha256.Sum224([]byte(raw))
+	return hex.EncodeToString(sum224[:])
 }
