@@ -34,6 +34,11 @@ func (a *Address) BeforeCreate(t *gorm.DB) error {
 	return nil
 }
 
+func (a *Address) BeforeUpdate(t *gorm.DB) error {
+	a.Id = uuid.New().String()
+	return nil
+}
+
 func (a *Address) Create() (*Address, error) {
 	if err := database.DB.Create(a).Error; err != nil {
 		log.Err(err).Msg("Issue persist in Create")
@@ -60,7 +65,7 @@ func GetAddressByUserId(userId string) ([]*Address, error) {
 	return address, nil
 }
 
-func Update(address *Address) (*Address, error) {
+func UpdateAddress(address *Address) (*Address, error) {
 	if err := database.DB.Save(address).Error; err != nil {
 		log.Err(err).Msg("Issue persist in Update")
 		return nil, err

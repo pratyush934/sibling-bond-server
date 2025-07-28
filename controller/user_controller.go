@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"github.com/gorilla/mux"
 	"github.com/pratyush934/sibling-bond-server/cjson"
 	"github.com/pratyush934/sibling-bond-server/dto"
 	"github.com/pratyush934/sibling-bond-server/models"
@@ -9,6 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -334,3 +336,248 @@ func ResetPasswordFromToken(w http.ResponseWriter, r *http.Request) {
 	user.PassWord = ""
 	_ = cjson.WriteJSON(w, http.StatusOK, user)
 }
+
+/*
+GetAddresses - List user addresses
+AddAddress - Create new user address
+UpdateAddress - Modify existing address
+DeleteAddress - Remove address
+*/
+
+func GetAddresses(w http.ResponseWriter, r *http.Request) {
+	userId, ok := r.Context().Value("userId").(string)
+
+	if !ok {
+		panic(cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Not able to get the Id",
+			InternalError: nil,
+		})
+	}
+
+	addressById, err := models.GetAddressByUserId(userId)
+	if err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Not able to get the Id",
+			InternalError: err,
+		})
+	}
+	_ = cjson.WriteJSON(w, http.StatusOK, addressById)
+}
+
+func AddAddress(w http.ResponseWriter, r *http.Request) {
+	userId, ok := r.Context().Value("userId").(string)
+
+	if !ok {
+		panic(cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Not able to get the Id",
+			InternalError: nil,
+		})
+	}
+
+	var addressModel dto.AddressModel
+	if err := json.NewDecoder(r.Body).Decode(&addressModel); err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusForbidden,
+			Message:       "Not able to get the AddressModel",
+			InternalError: err,
+		})
+	}
+	realAddress := models.Address{
+		UserId:     userId,
+		StreetName: addressModel.StreetName,
+		LandMark:   addressModel.LandMark,
+		ZipCode:    addressModel.ZipCode,
+		City:       addressModel.City,
+		State:      addressModel.State,
+	}
+
+	create, err := realAddress.Create()
+	if err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Not able to create the address",
+			InternalError: err,
+		})
+	}
+
+	_ = cjson.WriteJSON(w, http.StatusOK, create)
+
+}
+
+func UpdateAddress(w http.ResponseWriter, r *http.Request) {
+	// Get user ID from context (from JWT token)
+	userId, ok := r.Context().Value("userId").(string)
+	if !ok {
+		panic(cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Not able to get the user ID",
+			InternalError: nil,
+		})
+	}
+
+	// Parse the request body
+	var updateRequest struct {
+		AddressID  string `json:"addressId"`
+		StreetName string `json:"streetName"`
+		LandMark   string `json:"landMark"`
+		ZipCode    string `json:"zipCode"`
+		City       string `json:"city"`
+		State      string `json:"state"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&updateRequest); err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Not able to parse address update request",
+			InternalError: err,
+		})
+	}
+
+	// Ensure address ID is provided
+	if updateRequest.AddressID == "" {
+		panic(cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Address ID is required",
+			InternalError: nil,
+		})
+	}
+
+	// Retrieve the existing address
+	existingAddress, err := models.GetAddressById(updateRequest.AddressID)
+	if err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusNotFound,
+			Message:       "Address not found",
+			InternalError: err,
+		})
+	}
+
+	// Security check: Verify address belongs to current user
+	if existingAddress.UserId != userId {
+		panic(cjson.HTTPError{
+			Status:        http.StatusForbidden,
+			Message:       "You don't have permission to update this address",
+			InternalError: nil,
+		})
+	}
+
+	// Update the address fields
+	existingAddress.StreetName = updateRequest.StreetName
+	existingAddress.LandMark = updateRequest.LandMark
+	existingAddress.ZipCode = updateRequest.ZipCode
+	existingAddress.City = updateRequest.City
+	existingAddress.State = updateRequest.State
+
+	// Save the updated address
+	updatedAddress, err := models.UpdateAddress(existingAddress)
+	if err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusInternalServerError,
+			Message:       "Not able to update the address",
+			InternalError: err,
+		})
+	}
+
+	_ = cjson.WriteJSON(w, http.StatusOK, updatedAddress)
+}
+
+func DeleteAddress(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	addressId := vars["id"]
+
+	err := models.DeleteAddress(addressId)
+	if err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Fail to delete",
+			InternalError: err,
+		})
+	}
+	_ = cjson.WriteJSON(w, http.StatusOK, "Address deleted successfully")
+}
+
+/*
+Orders & History
+GetOrderHistory - List user's past orders
+GetOrderDetails - Get specific order details
+*/
+
+func GetOrderHistory(w http.ResponseWriter, r *http.Request) {
+	userId, ok := r.Context().Value("userId").(string)
+	if !ok {
+		panic(cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Not able to get the user ID",
+			InternalError: nil,
+		})
+	}
+	page := 1
+	pageSize := 10
+
+	// Parse pagination parameters if provided
+	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
+		if parsedPage, err := strconv.Atoi(pageStr); err == nil && parsedPage > 0 {
+			page = parsedPage
+		}
+	}
+
+	if sizeStr := r.URL.Query().Get("pageSize"); sizeStr != "" {
+		if parsedSize, err := strconv.Atoi(sizeStr); err == nil && parsedSize > 0 {
+			pageSize = parsedSize
+		}
+	}
+
+	ordersById, err := models.GetOrdersByUserId(userId, page, pageSize)
+	if err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusNotFound,
+			Message:       "Not able to get the Orders",
+			InternalError: err,
+		})
+	}
+	_ = cjson.WriteJSON(w, http.StatusOK, ordersById)
+}
+
+func GetOrderDetails(w http.ResponseWriter, r *http.Request) {
+	userId, ok := r.Context().Value("userId").(string)
+	if !ok {
+		panic(cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Not able to get the user ID",
+			InternalError: nil,
+		})
+	}
+	vars := mux.Vars(r)
+	orderId := vars["id"]
+
+	if orderId == "" {
+		panic(cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Empty OrderId won't go true",
+			InternalError: nil,
+		})
+	}
+
+	orderById, err := models.GetOrderByUserIdAndOrderId(userId, orderId)
+
+	if err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusNotFound,
+			Message:       "Not able to get the Orders",
+			InternalError: err,
+		})
+	}
+	_ = cjson.WriteJSON(w, http.StatusOK, orderById)
+}
+
+/*
+Admin Operations (if applicable)
+GetAllUsers - List all users (admin only)
+GetUserById - Get specific user details
+DeleteUser - Remove user account
+UpdateUserRole - Change user role/permissions
+
+*/

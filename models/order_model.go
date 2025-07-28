@@ -195,3 +195,36 @@ func GetAllOrder(limit, offset int, status string) ([]Order, error) {
 	}
 	return orders, nil
 }
+
+func GetOrdersByUserId(userId string, page, pageSize int) ([]Order, error) {
+
+	if pageSize <= 0 {
+		pageSize = 10
+	}
+
+	if page <= 0 {
+		page = 1
+	}
+
+	offSet := (page - 1) * pageSize
+
+	var order []Order
+	if err := database.DB.Where(&Order{UserId: userId}).Order("created_at DESC").Limit(pageSize).Offset(offSet).Find(&order).Error; err != nil {
+		log.Err(err).Msg("Issue exist in GetOrderByUserId")
+		return nil, err
+	}
+	return order, nil
+}
+
+func GetOrderByUserIdAndOrderId(userId, orderId string) (*Order, error) {
+	if userId == "" || orderId == "" {
+		return nil, fmt.Errorf("user Id or Order Id is required")
+	}
+
+	var order Order
+	if err := database.DB.Where("id = ? AND user_id = ?", orderId, userId).Preload("OrderItems").Preload("ShippingAddress").First(&order).Error; err != nil {
+		log.Err(err).Msg("Issue exist in GetOrderByUserIdAndOrderId")
+		return nil, err
+	}
+	return &order, nil
+}
