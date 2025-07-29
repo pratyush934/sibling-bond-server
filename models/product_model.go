@@ -167,6 +167,23 @@ func GetProductById(id string) (*Product, error) {
 	}
 	return &product, nil
 }
+
+func GetProductsByCategoryId(categoryId string, limit, offset int) ([]Product, error) {
+	var products []Product
+
+	if err := database.DB.Where(&Product{CategoryId: categoryId}).
+		Preload("Category").
+		Preload("Variants").
+		Limit(limit).
+		Offset(offset).
+		Find(&products).Error; err != nil {
+		log.Err(err).Msg("Issue getting products by category id")
+		return nil, err
+	}
+
+	return products, nil
+}
+
 func GetLowStockProducts() ([]Product, error) {
 	var products []Product
 	if err := database.DB.Where("stock <= reorder_point AND is_active = ?", true).Find(&products).Error; err != nil {
@@ -197,7 +214,19 @@ func DeleteProduct(id string) error {
 	return database.DB.Where(&Product{Id: id}).Delete(&Product{}).Error
 }
 
-func GetAllProducts(limit, offSet int, categoryId, searchQuery string) ([]Product, error) {
+func GetAllProducts(limit, offSet int) ([]Product, error) {
+	var products []Product
+	query := database.DB.Limit(limit).Offset(offSet)
+
+	if err := query.Find(&products).Error; err != nil {
+		log.Err(err).Msg("Issue exist in GetAllProducts")
+		return nil, err
+	}
+
+	return products, nil
+}
+
+func GetAllProductsWithQueries(limit, offSet int, categoryId, searchQuery string) ([]Product, error) {
 	var products []Product
 	query := database.DB.Limit(limit).Offset(offSet)
 
