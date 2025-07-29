@@ -556,7 +556,7 @@ func GetOrderDetails(w http.ResponseWriter, r *http.Request) {
 	if orderId == "" {
 		panic(cjson.HTTPError{
 			Status:        http.StatusBadRequest,
-			Message:       "Empty OrderId won't go true",
+			Message:       "Order Id is required",
 			InternalError: nil,
 		})
 	}
@@ -579,5 +579,101 @@ GetAllUsers - List all users (admin only)
 GetUserById - Get specific user details
 DeleteUser - Remove user account
 UpdateUserRole - Change user role/permissions
-
 */
+
+func GetAllUsersByAdmin(w http.ResponseWriter, r *http.Request) {
+	roleId, okk := r.Context().Value("role").(int)
+
+	if !okk {
+		panic(cjson.HTTPError{
+			Status:        http.StatusUnauthorized,
+			Message:       "Not able to extract the id and role from the context",
+			InternalError: nil,
+		})
+	}
+
+	if roleId != 2 {
+		panic(cjson.HTTPError{
+			Status:        http.StatusUnauthorized,
+			Message:       "you are not admin",
+			InternalError: nil,
+		})
+	}
+
+	users, err := models.GetAllUsers(5, 10)
+	if err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusNotFound,
+			Message:       "Not able to getAll the Users",
+			InternalError: err,
+		})
+	}
+
+	_ = cjson.WriteJSON(w, http.StatusOK, users)
+}
+
+func GetUserById(w http.ResponseWriter, r *http.Request) {
+	roleId, okk := r.Context().Value("role").(int)
+	vars := mux.Vars(r)
+	userId := vars["id"]
+
+	if !okk {
+		panic(cjson.HTTPError{
+			Status:        http.StatusUnauthorized,
+			Message:       "Not able to extract the id and role from the context",
+			InternalError: nil,
+		})
+	}
+
+	if roleId != 2 {
+		panic(cjson.HTTPError{
+			Status:        http.StatusUnauthorized,
+			Message:       "you are not admin",
+			InternalError: nil,
+		})
+	}
+
+	userById, err := models.GetUserById(userId)
+	if err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusNotFound,
+			Message:       "Message not found",
+			InternalError: err,
+		})
+	}
+	_ = cjson.WriteJSON(w, http.StatusOK, userById)
+}
+
+func DeleteUserById(w http.ResponseWriter, r *http.Request) {
+
+	roleId, ok := r.Context().Value("role").(int)
+
+	vars := mux.Vars(r)
+	userId := vars["id"]
+
+	if !ok {
+		panic(cjson.HTTPError{
+			Status:        http.StatusUnauthorized,
+			Message:       "Not able to extract the id and role from the context",
+			InternalError: nil,
+		})
+	}
+
+	if roleId != 2 {
+		panic(cjson.HTTPError{
+			Status:        http.StatusUnauthorized,
+			Message:       "you are not admin",
+			InternalError: nil,
+		})
+	}
+
+	err := models.DeleteUser(userId)
+	if err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Not able to delete",
+			InternalError: err,
+		})
+	}
+	_ = cjson.WriteJSON(w, http.StatusOK, "User Deleted Successfully")
+}
