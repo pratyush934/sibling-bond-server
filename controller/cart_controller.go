@@ -2,11 +2,11 @@ package controller
 
 import (
 	"encoding/json"
-	"github.com/gorilla/mux"
 	"github.com/pratyush934/sibling-bond-server/cjson"
 	"github.com/pratyush934/sibling-bond-server/dto"
 	"github.com/pratyush934/sibling-bond-server/models"
 	"net/http"
+	"strconv"
 )
 
 /*
@@ -16,25 +16,23 @@ AddToCart - Add product to cart (handles new items and quantity increases)
 UpdateCartItem - Update quantity of existing cart item
 RemoveFromCart - Remove specific item from cart
 ClearCart - Remove all items from user's cart
-ApplyCoupon - Apply discount code to cart
 GetCartTotal - Calculate total price of items in cart
-MergeCart - Merge guest cart with user cart after login
 ValidateCartItems - Check if cart items are still available in inventory
 */
 
 func GetCart(w http.ResponseWriter, r *http.Request) {
 
-	vars := mux.Vars(r)
-	cartId := vars["id"]
+	userId, ok := r.Context().Value("userId").(string)
 
-	if cartId == "" {
+	if userId == "" || !ok {
 		panic(cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Not able to get the UserId",
 			InternalError: nil,
 		})
 	}
-	cartById, err := models.GetCartById(cartId)
+
+	cartById, err := models.GetCartByUserId(userId)
 	if err != nil {
 		panic(cjson.HTTPError{
 			Status:        http.StatusNotFound,
@@ -167,4 +165,111 @@ func AddToCart(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	_ = cjson.WriteJSON(w, http.StatusCreated, addedItem)
+}
+
+func UpdateCartItem(w http.ResponseWriter, r *http.Request) {
+
+	/* cartId and ProductId */
+
+	cartItemId := r.URL.Query().Get("cartItem")
+	quantity := r.URL.Query().Get("quantity")
+
+	if cartItemId == "" {
+		panic(cjson.HTTPError{
+			Status:        http.StatusNotFound,
+			Message:       "Please provide the cartItemId",
+			InternalError: nil,
+		})
+	}
+	amount := 0
+	if quantity == "" {
+		amount = 0
+	}
+	amount, _ = strconv.Atoi(quantity)
+
+	itemQuantity, err := models.UpdateItemQuantity(cartItemId, amount)
+
+	if err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusInternalServerError,
+			Message:       "Not able to increase quantity",
+			InternalError: err,
+		})
+	}
+	_ = cjson.WriteJSON(w, http.StatusOK, itemQuantity)
+}
+
+func RemoveFromCart(w http.ResponseWriter, r *http.Request) {
+	cartItemId := r.URL.Query().Get("cartItem")
+
+	err := models.RemoveItem(cartItemId)
+
+	if err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusInternalServerError,
+			Message:       "Not able to delete",
+			InternalError: err,
+		})
+	}
+
+	_ = cjson.WriteJSON(w, http.StatusOK, "CartItemDeletedSuccessfully")
+}
+
+func ClearCart(w http.ResponseWriter, r *http.Request) {
+	cartId := r.URL.Query().Get("cart")
+
+	err := models.DeleteAllItemsByCartId(cartId)
+
+	if err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusInternalServerError,
+			Message:       "Not able to delete",
+			InternalError: err,
+		})
+	}
+
+	_ = cjson.WriteJSON(w, http.StatusOK, "Cart is Empty Now")
+}
+
+func GetCartItemTotal(w http.ResponseWriter, r *http.Request) {
+
+	userId, ok := r.Context().Value("userId").(string)
+
+	if userId == "" || !ok {
+		panic(cjson.HTTPError{
+			Status:        http.StatusNotFound,
+			Message:       "Not able to get the UserId",
+			InternalError: nil,
+		})
+	}
+
+	cartByUserId, err := models.GetCartByUserId(userId)
+
+	if err != nil {
+		panic(cjson.HTTPError{
+			Status:        http.StatusInternalServerError,
+			Message:       "Not able to getCart",
+			InternalError: err,
+		})
+	}
+
+	total := 0
+	totalQuantity := 0
+	for _, v := range cartByUserId.CartItems {
+		total += v.PriceAtAdding * v.Quantity
+		totalQuantity += v.Quantity
+	}
+
+	type CartTotalResponse struct {
+		TotalMoney int `json:"totalMoney"`
+		Quantity   int `json:"quantity"`
+	}
+
+	totalResponse := CartTotalResponse{
+		TotalMoney: total,
+		Quantity:   totalQuantity,
+	}
+
+	_ = cjson.WriteJSON(w, http.StatusOK, totalResponse)
+
 }
