@@ -228,3 +228,7 @@ func GetOrderByUserIdAndOrderId(userId, orderId string) (*Order, error) {
 	}
 	return &order, nil
 }
+
+func DeleteOrderById(orderId string) error {
+	return database.DB.Where(&Order{Id: orderId}).Delete(&Order{}).Error
+}

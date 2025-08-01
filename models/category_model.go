@@ -75,10 +75,18 @@ func DeleteCategory(id string) error {
 	return database.DB.Where(&Category{Id: id}).Delete(&Category{}).Error
 }
 
-func GetAll() (*[]Category, error) {
+func GetAll(limit, offSet int) (*[]Category, error) {
 	var categories []Category
-	if err := database.DB.Find(&categories).Error; err != nil {
+	if err := database.DB.Find(&categories).Limit(limit).Offset(offSet).Error; err != nil {
 		return nil, err
 	}
 	return &categories, nil
+}
+
+func CategoryHasProducts(categoryId string) (bool, error) {
+	var products []Product
+	if err := database.DB.Where(&Category{Id: categoryId}).Find(&products).Error; err != nil {
+		return false, err
+	}
+	return len(products) > 0, nil
 }
