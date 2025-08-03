@@ -10,7 +10,7 @@ import (
 )
 
 type ProductVariant struct {
-	Id           string    `gorm:"primaryKey" json:"id"`
+	Id           string    `gorm:"primaryKey;type:varchar(191)" json:"id"`
 	ProductId    string    `gorm:"not null" json:"productId"`
 	Product      Product   `gorm:"foreignKey:ProductId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"product"`
 	VariantName  string    `gorm:"not null" json:"variantName"`

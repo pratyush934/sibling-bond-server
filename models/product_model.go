@@ -18,7 +18,7 @@ type Product struct {
 	Stock       int            `gorm:"not null;default:0" json:"stock"`
 	CategoryId  string         `gorm:"not null;type:varchar(150)" json:"categoryId"`
 	Category    Category       `gorm:"foreignKey:CategoryId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"category"`
-	Images      []string       `gorm:"type:json" json:"images"`
+	Images      []string       `gorm:"type:json;serializer:json" json:"images"`
 	IsActive    bool           `gorm:"default:true" json:"isActive"`
 	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 	CreatedAt   time.Time      `json:"createdAt"`
@@ -66,9 +66,11 @@ func (p *Product) BeforeUpdate(t *gorm.DB) error {
 }
 
 func generateSKU(productName, categoryId string) string {
-	prefix := strings.ToUpper(productName[:min(3, len(productName))])
+	prefixLen := min(3, len(productName))
+	categoryLen := min(8, len(categoryId))
+	prefix := strings.ToUpper(productName[:prefixLen])
 	suffix := uuid.New().String()[:8]
-	return fmt.Sprintf("%s-%s-%s", prefix, categoryId[:8], suffix)
+	return fmt.Sprintf("%s-%s-%s", prefix, categoryId[:categoryLen], suffix)
 }
 
 func min(a, b int) int {

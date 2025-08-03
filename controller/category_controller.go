@@ -64,7 +64,7 @@ func GetCategoryById(w http.ResponseWriter, r *http.Request) {
 // CreateCategory - Add new category (admin only)
 func CreateCategory(w http.ResponseWriter, r *http.Request) {
 	// Verify admin role
-	role, ok := r.Context().Value("role").(int)
+	role, ok := r.Context().Value("role").(float64)
 	if !ok || role != 2 {
 		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
@@ -116,7 +116,7 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 // UpdateCategory - Update category details (admin only)
 func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	// Verify admin role
-	role, ok := r.Context().Value("role").(int)
+	role, ok := r.Context().Value("role").(float64)
 	if !ok || role != 2 {
 		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
@@ -190,7 +190,7 @@ func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 // DeleteCategory - Remove a category (admin only)
 func DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	// Verify admin role
-	role, ok := r.Context().Value("role").(int)
+	role, ok := r.Context().Value("role").(float64)
 	if !ok || role != 2 {
 		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,

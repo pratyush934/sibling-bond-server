@@ -35,6 +35,9 @@ func LoadDB() {
 			&models.Order{},
 			&models.Product{},
 			&models.Category{},
+			&models.ProductVariant{},
+			&models.Cart{},
+			&models.CartItem{},
 		); err != nil {
 			panic(&cjson.HTTPError{
 				Status:        http.StatusInternalServerError,

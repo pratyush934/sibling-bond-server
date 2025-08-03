@@ -10,7 +10,7 @@ import (
 )
 
 type OrderItem struct {
-	Id              string    `gorm:"primaryKey" json:"id"`
+	Id              string    `gorm:"primaryKey;type:varchar(191)" json:"id"`
 	OrderId         string    `gorm:"not null" json:"orderId"`
 	ProductId       string    `gorm:"not null;type:varchar(191)" json:"productId"`
 	VariantId       *string   `json:"variantId"`

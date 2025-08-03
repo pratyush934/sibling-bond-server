@@ -10,7 +10,7 @@ import (
 )
 
 type Order struct {
-	Id                string      `gorm:"primaryKey" json:"id"`
+	Id                string      `gorm:"primaryKey;type:varchar(191)" json:"id"`
 	UserId            string      `gorm:"not null" json:"userId"`
 	User              User        `gorm:"foreignKey:UserId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"user"`
 	OrderItems        []OrderItem `gorm:"foreignKey:OrderId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"orderItems"`

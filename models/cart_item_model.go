@@ -9,7 +9,7 @@ import (
 )
 
 type CartItem struct {
-	Id            string    `gorm:"primaryKey" json:"id"`
+	Id            string    `gorm:"primaryKey;type:varchar(191)" json:"id"`
 	CartId        string    `gorm:"not null" json:"cartId"`
 	ProductId     string    `gorm:"not null" json:"productId"`
 	Product       Product   `gorm:"foreignKey:ProductId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"product"`
