@@ -18,18 +18,30 @@ var (
 
 func LoadDB() {
 	if err := database.InitDB(); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Issue while connecting LOAD DB",
 			InternalError: err,
 		})
 	}
-	if err := database.DB.AutoMigrate(&models.User{}, &models.Address{}, &models.Role{}, &models.OrderItem{}, &models.Order{}, &models.Product{}, &models.Product{}, &models.Category{}); err != nil {
-		panic(cjson.HTTPError{
-			Status:        http.StatusInternalServerError,
-			Message:       "Issue while migrating models to DB",
-			InternalError: err,
-		})
+
+	// Only migrate if the orders table does not exist
+	if !database.DB.Migrator().HasTable(&models.Order{}) {
+		if err := database.DB.AutoMigrate(
+			&models.User{},
+			&models.Address{},
+			&models.Role{},
+			&models.OrderItem{},
+			&models.Order{},
+			&models.Product{},
+			&models.Category{},
+		); err != nil {
+			panic(&cjson.HTTPError{
+				Status:        http.StatusInternalServerError,
+				Message:       "Issue while migrating models to DB",
+				InternalError: err,
+			})
+		}
 	}
 }
 
@@ -61,7 +73,6 @@ func SeedData() {
 			_ = db.Create(&user)
 		}
 	}
-
 }
 
 func Server() {
@@ -81,7 +92,11 @@ func Server() {
 		Handler: router,
 	}
 	if err := server.ListenAndServe(); err != nil {
-		panic(cjson.NewError(http.StatusInternalServerError, "Issue while starting the server", err))
+		panic(&cjson.HTTPError{
+			Status:        http.StatusInternalServerError,
+			Message:       "Not able to start the Server",
+			InternalError: err,
+		})
 	}
 }
 

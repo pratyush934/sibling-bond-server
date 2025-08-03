@@ -59,7 +59,7 @@ func (u *User) ValidatePassWord(pass string) bool {
 }
 
 func (u *User) CreateUser() (*User, error) {
-	if err := database.DB.Create(u).Error; err != nil {
+	if err := database.DB.Preload("role").Create(u).Error; err != nil {
 		log.Err(err).Msg("Issue while creating User")
 		return nil, err
 	}

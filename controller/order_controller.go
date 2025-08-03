@@ -2,6 +2,7 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/pratyush934/sibling-bond-server/cjson"
 	"github.com/pratyush934/sibling-bond-server/database"
 	"github.com/pratyush934/sibling-bond-server/models"
@@ -25,7 +26,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("userId").(string)
 
 	if userId == "" || !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "There is no UserId, if there is we are not able to get it",
 			InternalError: nil,
@@ -34,7 +35,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 	shippingAddressId := r.URL.Query().Get("shippingAddressId")
 	if shippingAddressId == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "There is not shipping Id found",
 			InternalError: nil,
@@ -47,7 +48,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 	cartByUserId, err := models.GetCartByUserId(userId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "There are is not a single cart found",
 			InternalError: err,
@@ -55,7 +56,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(cartByUserId.CartItems) == 0 {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusExpectationFailed,
 			Message:       "There are not Items in the cart",
 			InternalError: nil,
@@ -95,7 +96,7 @@ func CreateOrder(w http.ResponseWriter, r *http.Request) {
 	createdOrder, err := newOrderModel.Create()
 
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusExpectationFailed,
 			Message:       "Not able to create Order",
 			InternalError: err,
@@ -114,7 +115,7 @@ func CancelOrder(w http.ResponseWriter, r *http.Request) {
 	// Get authenticated user ID from context
 	userId, ok := r.Context().Value("userId").(string)
 	if userId == "" || !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Authentication required",
 			InternalError: nil,
@@ -124,7 +125,7 @@ func CancelOrder(w http.ResponseWriter, r *http.Request) {
 	// Get order ID from URL params
 	orderId := r.URL.Query().Get("orderId")
 	if orderId == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Order ID is required",
 			InternalError: nil,
@@ -134,7 +135,7 @@ func CancelOrder(w http.ResponseWriter, r *http.Request) {
 	// Get the order and verify ownership
 	order, err := models.GetOrderByUserIdAndOrderId(userId, orderId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Order not found or doesn't belong to you",
 			InternalError: err,
@@ -144,7 +145,7 @@ func CancelOrder(w http.ResponseWriter, r *http.Request) {
 	// Check if order is in a cancellable state
 	// Only allow cancellation for pending or confirmed orders
 	if order.Status != "pending" && order.Status != "confirmed" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       fmt.Sprintf("Order in '%s' state cannot be cancelled", order.Status),
 			InternalError: nil,
@@ -154,7 +155,7 @@ func CancelOrder(w http.ResponseWriter, r *http.Request) {
 	// Delete the order
 	err = models.DeleteOrderById(orderId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Failed to cancel order",
 			InternalError: err,
@@ -169,7 +170,7 @@ func UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 	role, ok := r.Context().Value("role").(int)
 
 	if role != 2 || !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Not able to get the role or if got the person is not admin",
 			InternalError: nil,
@@ -182,7 +183,7 @@ func UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 	}
 	orderId := r.URL.Query().Get("orderId")
 	if orderId == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "please provide orderId",
 			InternalError: nil,
@@ -191,7 +192,7 @@ func UpdateOrderStatus(w http.ResponseWriter, r *http.Request) {
 
 	status, err := models.UpdateStatus(orderId, strings.ToLower(orderStatus))
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Not able to update the status",
 			InternalError: err,
@@ -206,7 +207,7 @@ func GetAllOrders(w http.ResponseWriter, r *http.Request) {
 	role, ok := r.Context().Value("role").(int)
 
 	if role != 2 || !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "You are not authorized to get the orders",
 			InternalError: nil,
@@ -232,7 +233,7 @@ func GetAllOrders(w http.ResponseWriter, r *http.Request) {
 
 	orderAll, err := models.GetAllOrder(limitN, offSetN, "")
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Not able to get all ordes",
 			InternalError: err,
@@ -247,7 +248,7 @@ func ProcessPayment(w http.ResponseWriter, r *http.Request) {
 	// Get authenticated user ID
 	userId, ok := r.Context().Value("userId").(string)
 	if userId == "" || !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Authentication required",
 			InternalError: nil,
@@ -257,7 +258,7 @@ func ProcessPayment(w http.ResponseWriter, r *http.Request) {
 	// Get order ID from URL params
 	orderId := r.URL.Query().Get("orderId")
 	if orderId == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Order ID is required",
 			InternalError: nil,
@@ -272,7 +273,7 @@ func ProcessPayment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&paymentDetails); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Invalid payment details",
 			InternalError: err,
@@ -282,7 +283,7 @@ func ProcessPayment(w http.ResponseWriter, r *http.Request) {
 	// Get the order and verify ownership
 	order, err := models.GetOrderByUserIdAndOrderId(userId, orderId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Order not found or doesn't belong to you",
 			InternalError: err,
@@ -291,7 +292,7 @@ func ProcessPayment(w http.ResponseWriter, r *http.Request) {
 
 	// Verify payment amount matches order total
 	if paymentDetails.PaymentAmount != order.TotalAmount {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Payment amount doesn't match order total",
 			InternalError: nil,
@@ -309,7 +310,7 @@ func ProcessPayment(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !isValidMethod {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Invalid payment method",
 			InternalError: nil,
@@ -335,7 +336,7 @@ func ProcessPayment(w http.ResponseWriter, r *http.Request) {
 	if err := tx.Save(order).Error; err != nil {
 		tx.Rollback()
 		log.Err(err).Msg("Failed to update payment status")
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Failed to process payment",
 			InternalError: err,

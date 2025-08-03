@@ -23,7 +23,7 @@ DeleteProduct - Remove a product (admin only)
 */
 
 func CheckAdmin(w http.ResponseWriter, r *http.Request) error {
-	role, ok := r.Context().Value("role").(int)
+	role, ok := r.Context().Value("role").(float64)
 
 	if !ok {
 		return fmt.Errorf("not able to get the roleId from context")
@@ -44,7 +44,7 @@ func GetAllProducts(w http.ResponseWriter, r *http.Request) {
 	offSetStr := r.URL.Query().Get("offset")
 
 	if limitStr == "" || offSetStr == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Please provide limitStr or OffSetStr",
 			InternalError: nil,
@@ -56,7 +56,7 @@ func GetAllProducts(w http.ResponseWriter, r *http.Request) {
 
 	products, err := models.GetAllProducts(limit, offSet)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Not able to get the Products",
 			InternalError: err,
@@ -70,7 +70,7 @@ func GetProductById(w http.ResponseWriter, r *http.Request) {
 	productId := r.URL.Query().Get("id")
 
 	if productId == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Please provide productId",
 			InternalError: nil,
@@ -78,7 +78,7 @@ func GetProductById(w http.ResponseWriter, r *http.Request) {
 	}
 	productById, err := models.GetProductById(productId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Not found the product, the Id may be wrong",
 			InternalError: err,
@@ -96,7 +96,7 @@ func SearchProduct(w http.ResponseWriter, r *http.Request) {
 	search := r.URL.Query().Get("search")
 
 	if limitStr == "" || offSetStr == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Please provide limitStr or OffSetStr",
 			InternalError: nil,
@@ -108,7 +108,7 @@ func SearchProduct(w http.ResponseWriter, r *http.Request) {
 
 	allProducts, err := models.GetAllProductsWithQueries(limit, offSet, categoryId, search)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Not able to get the products",
 			InternalError: err,
@@ -126,7 +126,7 @@ func GetProductsByCategory(w http.ResponseWriter, r *http.Request) {
 	offSetStr := r.URL.Query().Get("offset")
 
 	if limitStr == "" || offSetStr == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Please provide limitStr or OffSetStr",
 			InternalError: nil,
@@ -138,7 +138,7 @@ func GetProductsByCategory(w http.ResponseWriter, r *http.Request) {
 	categoryId := r.URL.Query().Get("categoryId")
 
 	if categoryId == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Please provide limitStr or OffSetStr",
 			InternalError: nil,
@@ -147,7 +147,7 @@ func GetProductsByCategory(w http.ResponseWriter, r *http.Request) {
 
 	productById, err := models.GetProductsByCategoryId(categoryId, limit, offSet)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Not able to get the products",
 			InternalError: err,
@@ -161,7 +161,7 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	err := CheckAdmin(w, r)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Not able to verify the user as admin",
 			InternalError: err,
@@ -171,7 +171,7 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var productModel dto.ProductModel
 
 	if err := json.NewDecoder(r.Body).Decode(&productModel); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Not able to decode the Product",
 			InternalError: err,
@@ -179,7 +179,7 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if productModel.Name == "" || productModel.CategoryId == "" || productModel.Price <= 0 {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Need to feed Name, CategoryId, Price",
 			InternalError: nil,
@@ -217,7 +217,7 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	product, err := newProduct.CreateProduct()
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able to Create Product",
 			InternalError: err,
@@ -229,7 +229,7 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 func UpdateProductDetails(w http.ResponseWriter, r *http.Request) {
 	err := CheckAdmin(w, r)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Not an admin",
 			InternalError: err,
@@ -241,7 +241,7 @@ func UpdateProductDetails(w http.ResponseWriter, r *http.Request) {
 	productId := vars["id"]
 
 	if productId == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Product ID is required",
 			InternalError: nil,
@@ -251,7 +251,7 @@ func UpdateProductDetails(w http.ResponseWriter, r *http.Request) {
 	// First fetch the existing product to ensure it exists
 	_, err = models.GetProductById(productId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Product not found",
 			InternalError: err,
@@ -260,7 +260,7 @@ func UpdateProductDetails(w http.ResponseWriter, r *http.Request) {
 
 	var productModel dto.ProductModel
 	if err := json.NewDecoder(r.Body).Decode(&productModel); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able to Decode the Product",
 			InternalError: err,
@@ -290,7 +290,7 @@ func UpdateProductDetails(w http.ResponseWriter, r *http.Request) {
 	if len(productModel.Variants) > 0 {
 		// First remove existing variants
 		if err := database.DB.Where("product_id = ?", productId).Delete(&models.ProductVariant{}).Error; err != nil {
-			panic(cjson.HTTPError{
+			panic(&cjson.HTTPError{
 				Status:        http.StatusInternalServerError,
 				Message:       "Failed to delete existing product variants",
 				InternalError: err,
@@ -312,7 +312,7 @@ func UpdateProductDetails(w http.ResponseWriter, r *http.Request) {
 
 	product, err := models.UpdateProduct(&updateProduct)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Not able to Update the Product",
 			InternalError: err,
@@ -326,7 +326,7 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	err2 := CheckAdmin(w, r)
 
 	if err2 != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Not an admin",
 			InternalError: err2,
@@ -337,7 +337,7 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	productId := vars["id"]
 
 	if productId == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "ProductId is empty",
 			InternalError: nil,
@@ -347,7 +347,7 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	err := models.DeleteProduct(productId)
 
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able to delete this product",
 			InternalError: err,

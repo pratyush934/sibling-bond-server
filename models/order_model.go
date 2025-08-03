@@ -16,7 +16,7 @@ type Order struct {
 	OrderItems        []OrderItem `gorm:"foreignKey:OrderId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"orderItems"`
 	OrderedAt         time.Time   `json:"orderedAt"`
 	TotalAmount       int         `json:"totalAmount"`
-	ShippingAddressId string      `gorm:"not null" json:"shippingAddressId"`
+	ShippingAddressId string      `gorm:"type:varchar(191);not null" json:"shippingAddressId"`
 	ShippingAddress   Address     `gorm:"foreignKey:ShippingAddressId;constraint:onUpdate:CASCADE,onDelete:CASCADE"  json:"address"`
 	Status            string      `json:"status"`
 	PaymentStatus     string      `json:"paymentStatus"`

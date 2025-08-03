@@ -11,12 +11,12 @@ import (
 )
 
 type Product struct {
-	Id          string         `gorm:"primaryKey" json:"id"`
+	Id          string         `gorm:"primaryKey;type:varchar(191)" json:"id"`
 	Name        string         `gorm:"not null" json:"name"`
 	Description string         `json:"description"`
 	Price       int            `gorm:"not null" json:"price"`
 	Stock       int            `gorm:"not null;default:0" json:"stock"`
-	CategoryId  string         `gorm:"not null" json:"categoryId"`
+	CategoryId  string         `gorm:"not null;type:varchar(150)" json:"categoryId"`
 	Category    Category       `gorm:"foreignKey:CategoryId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"category"`
 	Images      []string       `gorm:"type:json" json:"images"`
 	IsActive    bool           `gorm:"default:true" json:"isActive"`

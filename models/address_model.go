@@ -8,7 +8,7 @@ import (
 )
 
 type Address struct {
-	Id         string `gorm:"primaryKey" json:"id"`
+	Id         string `gorm:"primaryKey;type:varchar(191)" json:"id"`
 	UserId     string `gorm:"not null" json:"userId"`
 	StreetName string `gorm:"not null" json:"streetName"`
 	LandMark   string `gorm:"not null" json:"landMark"`

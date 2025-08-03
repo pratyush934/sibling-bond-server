@@ -26,7 +26,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	}(r.Body)
 
 	if err := json.NewDecoder(r.Body).Decode(&register); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusForbidden,
 			Message:       "Not able to read the register",
 			InternalError: err,
@@ -41,7 +41,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 	createUser, err := user.CreateUser()
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusForbidden,
 			Message:       "Not able to CreateUser in Register",
 			InternalError: err,
@@ -63,7 +63,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}(r.Body)
 
 	if err := json.NewDecoder(r.Body).Decode(&login); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusForbidden,
 			Message:       "Not able to read the Login",
 			InternalError: err,
@@ -71,7 +71,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if login.Email == "" || login.PassWord == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Email and password are required",
 			InternalError: nil,
@@ -80,7 +80,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	userByEmail, err := models.GetUserByEmail(login.Email)
 	if err != nil || !userByEmail.ValidatePassWord(login.PassWord) {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Invalid Email or Password",
 			InternalError: err,
@@ -89,7 +89,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 	token, err := utils.CreateToken(userByEmail)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able to Generate Token",
 			InternalError: err,
@@ -142,7 +142,7 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("userId").(string)
 
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "User Id not found in context",
 			InternalError: nil,
@@ -151,7 +151,7 @@ func GetProfile(w http.ResponseWriter, r *http.Request) {
 
 	userById, err := models.GetUserById(userId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "user not found",
 			InternalError: err,
@@ -169,7 +169,7 @@ func ChangePassword(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("userId").(string)
 
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "User Id not found in context",
 			InternalError: nil,
@@ -178,7 +178,7 @@ func ChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	userById, err := models.GetUserById(userId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "User with Id not found in context",
 			InternalError: nil,
@@ -192,7 +192,7 @@ func ChangePassword(w http.ResponseWriter, r *http.Request) {
 	var newPass newPassWord
 
 	if err := json.NewDecoder(r.Body).Decode(&newPass); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able to read the newPassword",
 			InternalError: err,
@@ -200,7 +200,7 @@ func ChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := userById.ResetPassword(newPass.Pass); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able Reset the password",
 			InternalError: nil,
@@ -215,7 +215,7 @@ func ForgotPassWord(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Unable to parse request",
 			InternalError: err,
@@ -224,7 +224,7 @@ func ForgotPassWord(w http.ResponseWriter, r *http.Request) {
 
 	// Validate input
 	if request.Email == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Email is required",
 			InternalError: nil,
@@ -233,7 +233,7 @@ func ForgotPassWord(w http.ResponseWriter, r *http.Request) {
 
 	byEmail, err := models.GetUserByEmail(request.Email)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "user is not there via email",
 			InternalError: err,
@@ -243,7 +243,7 @@ func ForgotPassWord(w http.ResponseWriter, r *http.Request) {
 
 	user, err := models.UpdateUser(byEmail)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Not able to save the user",
 			InternalError: err,
@@ -268,7 +268,7 @@ func ResetPasswordFromToken(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("reset-token")
 
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadGateway,
 			Message:       "Not able to get the cookie",
 			InternalError: err,
@@ -282,7 +282,7 @@ func ResetPasswordFromToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&EmailStruct); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadGateway,
 			Message:       "Not able to get the EmailStruct",
 			InternalError: err,
@@ -290,7 +290,7 @@ func ResetPasswordFromToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if EmailStruct.Password == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadGateway,
 			Message:       "Password is empty",
 			InternalError: nil,
@@ -300,7 +300,7 @@ func ResetPasswordFromToken(w http.ResponseWriter, r *http.Request) {
 	userByToken, err := models.GetUserByResetToken(token)
 
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadGateway,
 			Message:       "Not able to get the EmailStruct",
 			InternalError: err,
@@ -308,7 +308,7 @@ func ResetPasswordFromToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := userByToken.ResetPassword(EmailStruct.Password); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Not able to reset the Password",
 			InternalError: err,
@@ -317,7 +317,7 @@ func ResetPasswordFromToken(w http.ResponseWriter, r *http.Request) {
 
 	user, err := models.UpdateUser(userByToken)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Not able to update the user",
 			InternalError: err,
@@ -348,7 +348,7 @@ func GetAddresses(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("userId").(string)
 
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able to get the Id",
 			InternalError: nil,
@@ -357,7 +357,7 @@ func GetAddresses(w http.ResponseWriter, r *http.Request) {
 
 	addressById, err := models.GetAddressByUserId(userId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able to get the Id",
 			InternalError: err,
@@ -370,7 +370,7 @@ func AddAddress(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("userId").(string)
 
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able to get the Id",
 			InternalError: nil,
@@ -379,7 +379,7 @@ func AddAddress(w http.ResponseWriter, r *http.Request) {
 
 	var addressModel dto.AddressModel
 	if err := json.NewDecoder(r.Body).Decode(&addressModel); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusForbidden,
 			Message:       "Not able to get the AddressModel",
 			InternalError: err,
@@ -396,7 +396,7 @@ func AddAddress(w http.ResponseWriter, r *http.Request) {
 
 	create, err := realAddress.Create()
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able to create the address",
 			InternalError: err,
@@ -411,7 +411,7 @@ func UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	// Get user ID from context (from JWT token)
 	userId, ok := r.Context().Value("userId").(string)
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able to get the user ID",
 			InternalError: nil,
@@ -429,7 +429,7 @@ func UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&updateRequest); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able to parse address update request",
 			InternalError: err,
@@ -438,7 +438,7 @@ func UpdateAddress(w http.ResponseWriter, r *http.Request) {
 
 	// Ensure address ID is provided
 	if updateRequest.AddressID == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Address ID is required",
 			InternalError: nil,
@@ -448,7 +448,7 @@ func UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	// Retrieve the existing address
 	existingAddress, err := models.GetAddressById(updateRequest.AddressID)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Address not found",
 			InternalError: err,
@@ -457,7 +457,7 @@ func UpdateAddress(w http.ResponseWriter, r *http.Request) {
 
 	// Security check: Verify address belongs to current user
 	if existingAddress.UserId != userId {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusForbidden,
 			Message:       "You don't have permission to update this address",
 			InternalError: nil,
@@ -474,7 +474,7 @@ func UpdateAddress(w http.ResponseWriter, r *http.Request) {
 	// Save the updated address
 	updatedAddress, err := models.UpdateAddress(existingAddress)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Not able to update the address",
 			InternalError: err,
@@ -490,7 +490,7 @@ func DeleteAddress(w http.ResponseWriter, r *http.Request) {
 
 	err := models.DeleteAddress(addressId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Fail to delete",
 			InternalError: err,
@@ -508,7 +508,7 @@ GetOrderDetails - Get specific order details
 func GetOrderHistory(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("userId").(string)
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able to get the user ID",
 			InternalError: nil,
@@ -532,7 +532,7 @@ func GetOrderHistory(w http.ResponseWriter, r *http.Request) {
 
 	ordersById, err := models.GetOrdersByUserId(userId, page, pageSize)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Not able to get the Orders",
 			InternalError: err,
@@ -544,7 +544,7 @@ func GetOrderHistory(w http.ResponseWriter, r *http.Request) {
 func GetOrderDetails(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("userId").(string)
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able to get the user ID",
 			InternalError: nil,
@@ -554,7 +554,7 @@ func GetOrderDetails(w http.ResponseWriter, r *http.Request) {
 	orderId := vars["id"]
 
 	if orderId == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Order Id is required",
 			InternalError: nil,
@@ -564,7 +564,7 @@ func GetOrderDetails(w http.ResponseWriter, r *http.Request) {
 	orderById, err := models.GetOrderByUserIdAndOrderId(userId, orderId)
 
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Not able to get the Orders",
 			InternalError: err,
@@ -582,10 +582,10 @@ UpdateUserRole - Change user role/permissions
 */
 
 func GetAllUsersByAdmin(w http.ResponseWriter, r *http.Request) {
-	roleId, okk := r.Context().Value("role").(int)
+	roleId, okk := r.Context().Value("role").(float64)
 
 	if !okk {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Not able to extract the id and role from the context",
 			InternalError: nil,
@@ -593,7 +593,7 @@ func GetAllUsersByAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if roleId != 2 {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "you are not admin",
 			InternalError: nil,
@@ -602,7 +602,7 @@ func GetAllUsersByAdmin(w http.ResponseWriter, r *http.Request) {
 
 	users, err := models.GetAllUsers(5, 10)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Not able to getAll the Users",
 			InternalError: err,
@@ -613,12 +613,12 @@ func GetAllUsersByAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetUserById(w http.ResponseWriter, r *http.Request) {
-	roleId, okk := r.Context().Value("role").(int)
+	roleId, okk := r.Context().Value("role").(float64)
 	vars := mux.Vars(r)
 	userId := vars["id"]
 
 	if !okk {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Not able to extract the id and role from the context",
 			InternalError: nil,
@@ -626,7 +626,7 @@ func GetUserById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if roleId != 2 {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "you are not admin",
 			InternalError: nil,
@@ -635,7 +635,7 @@ func GetUserById(w http.ResponseWriter, r *http.Request) {
 
 	userById, err := models.GetUserById(userId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Message not found",
 			InternalError: err,
@@ -646,13 +646,13 @@ func GetUserById(w http.ResponseWriter, r *http.Request) {
 
 func DeleteUserById(w http.ResponseWriter, r *http.Request) {
 
-	roleId, ok := r.Context().Value("role").(int)
+	roleId, ok := r.Context().Value("role").(float64)
 
 	vars := mux.Vars(r)
 	userId := vars["id"]
 
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Not able to extract the id and role from the context",
 			InternalError: nil,
@@ -660,7 +660,7 @@ func DeleteUserById(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if roleId != 2 {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "you are not admin",
 			InternalError: nil,
@@ -669,7 +669,7 @@ func DeleteUserById(w http.ResponseWriter, r *http.Request) {
 
 	err := models.DeleteUser(userId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able to delete",
 			InternalError: err,

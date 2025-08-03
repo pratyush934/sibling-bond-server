@@ -26,7 +26,7 @@ func GetCart(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("userId").(string)
 
 	if userId == "" || !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Not able to get the UserId",
 			InternalError: nil,
@@ -35,7 +35,7 @@ func GetCart(w http.ResponseWriter, r *http.Request) {
 
 	cartById, err := models.GetCartByUserId(userId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Not able to get the CartById",
 			InternalError: err,
@@ -48,7 +48,7 @@ func CreateCart(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("userId").(string)
 
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Not able to get the Id from the User",
 			InternalError: nil,
@@ -58,7 +58,7 @@ func CreateCart(w http.ResponseWriter, r *http.Request) {
 	var cartModel dto.CartDataModel
 
 	if err := json.NewDecoder(r.Body).Decode(&cartModel); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Not able to decode the cartModel",
 			InternalError: err,
@@ -84,7 +84,7 @@ func CreateCart(w http.ResponseWriter, r *http.Request) {
 
 	cartCreated, err := models.Create(&newCart)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Not able to get it",
 			InternalError: err,
@@ -100,7 +100,7 @@ func AddToCart(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("userId").(string)
 
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Not able to get the UserId",
 			InternalError: nil,
@@ -109,7 +109,7 @@ func AddToCart(w http.ResponseWriter, r *http.Request) {
 	var cartItem dto.CartItemModel
 
 	if err := json.NewDecoder(r.Body).Decode(&cartItem); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Not able to get the CartItem",
 			InternalError: err,
@@ -125,7 +125,7 @@ func AddToCart(w http.ResponseWriter, r *http.Request) {
 
 		cartByUserId, err = models.Create(&newCart)
 		if err != nil {
-			panic(cjson.HTTPError{
+			panic(&cjson.HTTPError{
 				Status:        http.StatusInternalServerError,
 				Message:       "Not able to create Cart",
 				InternalError: err,
@@ -139,7 +139,7 @@ func AddToCart(w http.ResponseWriter, r *http.Request) {
 		/* product exist and then update the quantity */
 		updateQuantityStuff, err := models.IncrementItemQuantity(existingItem.Id, cartItem.Quantity)
 		if err != nil {
-			panic(cjson.HTTPError{
+			panic(&cjson.HTTPError{
 				Status:        http.StatusBadRequest,
 				Message:       "Not able to update stuff",
 				InternalError: err,
@@ -159,7 +159,7 @@ func AddToCart(w http.ResponseWriter, r *http.Request) {
 	addedItem, err := models.AddItem(&newProduct)
 
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Not able to add item to the cart",
 			InternalError: err,
@@ -172,7 +172,7 @@ func UpdateCartItem(w http.ResponseWriter, r *http.Request) {
 
 	userId, ok := r.Context().Value("userId").(string)
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "User authentication required",
 			InternalError: nil,
@@ -185,7 +185,7 @@ func UpdateCartItem(w http.ResponseWriter, r *http.Request) {
 	quantity := r.URL.Query().Get("quantity")
 
 	if cartItemId == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Please provide the cartItemId",
 			InternalError: nil,
@@ -197,7 +197,7 @@ func UpdateCartItem(w http.ResponseWriter, r *http.Request) {
 	}
 	amount, err := strconv.Atoi(quantity)
 	if err != nil || amount < 0 {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Invalid quantity value",
 			InternalError: err,
@@ -207,7 +207,7 @@ func UpdateCartItem(w http.ResponseWriter, r *http.Request) {
 	// Verify cart ownership - get the cart item first
 	var cartItem models.CartItem
 	if err := database.DB.Where("id = ?", cartItemId).First(&cartItem).Error; err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Cart item not found",
 			InternalError: err,
@@ -217,7 +217,7 @@ func UpdateCartItem(w http.ResponseWriter, r *http.Request) {
 	// Get the cart to verify ownership
 	cart, err := models.GetCartById(cartItem.CartId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Cart not found",
 			InternalError: err,
@@ -226,7 +226,7 @@ func UpdateCartItem(w http.ResponseWriter, r *http.Request) {
 
 	// Verify cart belongs to the authenticated user
 	if cart.UserId != userId {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusForbidden,
 			Message:       "You are not authorized to modify this cart",
 			InternalError: nil,
@@ -236,7 +236,7 @@ func UpdateCartItem(w http.ResponseWriter, r *http.Request) {
 	itemQuantity, err := models.UpdateItemQuantity(cartItemId, amount)
 
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Not able to increase quantity",
 			InternalError: err,
@@ -249,7 +249,7 @@ func RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 
 	userId, ok := r.Context().Value("userId").(string)
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "User authentication required",
 			InternalError: nil,
@@ -260,7 +260,7 @@ func RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 
 	var cartItem models.CartItem
 	if err := database.DB.Where("id = ?", cartItemId).First(&cartItem).Error; err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Cart item not found",
 			InternalError: err,
@@ -270,7 +270,7 @@ func RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 	// Get the cart to verify ownership
 	cart, err := models.GetCartById(cartItem.CartId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Cart not found",
 			InternalError: err,
@@ -279,7 +279,7 @@ func RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 
 	// Verify cart belongs to the authenticated user
 	if cart.UserId != userId {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusForbidden,
 			Message:       "You are not authorized to modify this cart",
 			InternalError: nil,
@@ -289,7 +289,7 @@ func RemoveFromCart(w http.ResponseWriter, r *http.Request) {
 	err = models.RemoveItem(cartItemId)
 
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Not able to delete",
 			InternalError: err,
@@ -303,7 +303,7 @@ func ClearCart(w http.ResponseWriter, r *http.Request) {
 
 	userId, ok := r.Context().Value("userId").(string)
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "User authentication required",
 			InternalError: nil,
@@ -314,7 +314,7 @@ func ClearCart(w http.ResponseWriter, r *http.Request) {
 
 	cart, err := models.GetCartById(cartId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Cart not found",
 			InternalError: err,
@@ -323,17 +323,17 @@ func ClearCart(w http.ResponseWriter, r *http.Request) {
 
 	// Verify cart belongs to the authenticated user
 	if cart.UserId != userId {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusForbidden,
 			Message:       "You are not authorized to modify this cart",
 			InternalError: nil,
 		})
 	}
 
-	err := models.DeleteAllItemsByCartId(cartId)
+	err = models.DeleteAllItemsByCartId(cartId)
 
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Not able to delete",
 			InternalError: err,
@@ -348,7 +348,7 @@ func GetCartItemTotal(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("userId").(string)
 
 	if userId == "" || !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Not able to get the UserId",
 			InternalError: nil,
@@ -358,7 +358,7 @@ func GetCartItemTotal(w http.ResponseWriter, r *http.Request) {
 	cartByUserId, err := models.GetCartByUserId(userId)
 
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Not able to getCart",
 			InternalError: err,
@@ -389,7 +389,7 @@ func GetCartItemTotal(w http.ResponseWriter, r *http.Request) {
 func ApplyCoupon(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("userId").(string)
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "User ID not found in context",
 			InternalError: nil,
@@ -402,7 +402,7 @@ func ApplyCoupon(w http.ResponseWriter, r *http.Request) {
 	}
 	var couponReq CouponRequest
 	if err := json.NewDecoder(r.Body).Decode(&couponReq); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Invalid coupon data",
 			InternalError: err,
@@ -412,7 +412,7 @@ func ApplyCoupon(w http.ResponseWriter, r *http.Request) {
 	// Get user's cart
 	cart, err := models.GetCartByUserId(userId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Cart not found",
 			InternalError: err,
@@ -440,7 +440,7 @@ func ApplyCoupon(w http.ResponseWriter, r *http.Request) {
 func MergeCart(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("userId").(string)
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "User ID not found in context",
 			InternalError: nil,
@@ -453,7 +453,7 @@ func MergeCart(w http.ResponseWriter, r *http.Request) {
 	}
 	var mergeReq MergeRequest
 	if err := json.NewDecoder(r.Body).Decode(&mergeReq); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Invalid request data",
 			InternalError: err,
@@ -461,7 +461,7 @@ func MergeCart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if mergeReq.GuestCartId == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Guest cart ID is required",
 			InternalError: nil,
@@ -476,7 +476,7 @@ func MergeCart(w http.ResponseWriter, r *http.Request) {
 		}
 		userCart, err = models.Create(&newCart)
 		if err != nil {
-			panic(cjson.HTTPError{
+			panic(&cjson.HTTPError{
 				Status:        http.StatusInternalServerError,
 				Message:       "Failed to create user cart",
 				InternalError: err,
@@ -487,7 +487,7 @@ func MergeCart(w http.ResponseWriter, r *http.Request) {
 	// Get guest cart
 	guestCart, err := models.GetCartById(mergeReq.GuestCartId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Guest cart not found",
 			InternalError: err,
@@ -501,7 +501,7 @@ func MergeCart(w http.ResponseWriter, r *http.Request) {
 			// Product exists in user cart, update quantity
 			_, err = models.IncrementItemQuantity(existingItem.Id, item.Quantity)
 			if err != nil {
-				panic(cjson.HTTPError{
+				panic(&cjson.HTTPError{
 					Status:        http.StatusInternalServerError,
 					Message:       "Failed to update item quantity",
 					InternalError: err,
@@ -517,7 +517,7 @@ func MergeCart(w http.ResponseWriter, r *http.Request) {
 			}
 			_, err = models.AddItem(&newItem)
 			if err != nil {
-				panic(cjson.HTTPError{
+				panic(&cjson.HTTPError{
 					Status:        http.StatusInternalServerError,
 					Message:       "Failed to add item to cart",
 					InternalError: err,
@@ -528,7 +528,7 @@ func MergeCart(w http.ResponseWriter, r *http.Request) {
 
 	// Delete guest cart
 	if err := models.DeleteCart(guestCart.Id); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Failed to delete guest cart",
 			InternalError: err,
@@ -543,7 +543,7 @@ func MergeCart(w http.ResponseWriter, r *http.Request) {
 func ValidateCartItems(w http.ResponseWriter, r *http.Request) {
 	userId, ok := r.Context().Value("userId").(string)
 	if !ok {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "User ID not found in context",
 			InternalError: nil,
@@ -553,7 +553,7 @@ func ValidateCartItems(w http.ResponseWriter, r *http.Request) {
 	// Get user's cart
 	cart, err := models.GetCartByUserId(userId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Cart not found",
 			InternalError: err,

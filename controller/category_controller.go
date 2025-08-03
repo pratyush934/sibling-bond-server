@@ -28,7 +28,7 @@ func GetAllCategories(w http.ResponseWriter, r *http.Request) {
 
 	categories, err := models.GetAll(limit, offset)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Failed to fetch categories",
 			InternalError: err,
@@ -42,7 +42,7 @@ func GetAllCategories(w http.ResponseWriter, r *http.Request) {
 func GetCategoryById(w http.ResponseWriter, r *http.Request) {
 	categoryId := r.URL.Query().Get("categoryId")
 	if categoryId == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Category ID is required",
 			InternalError: nil,
@@ -51,7 +51,7 @@ func GetCategoryById(w http.ResponseWriter, r *http.Request) {
 
 	category, err := models.GetCategoryById(categoryId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Category not found",
 			InternalError: err,
@@ -66,7 +66,7 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 	// Verify admin role
 	role, ok := r.Context().Value("role").(int)
 	if !ok || role != 2 {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Admin privileges required",
 			InternalError: nil,
@@ -75,7 +75,7 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 
 	var category models.Category
 	if err := json.NewDecoder(r.Body).Decode(&category); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Invalid category data",
 			InternalError: err,
@@ -84,7 +84,7 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 
 	// Validate category name
 	if category.Name == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Category name is required",
 			InternalError: nil,
@@ -94,7 +94,7 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 	// Check if category with same name already exists
 	existing, err := models.GetCategoryByName(category.Name)
 	if err == nil && existing != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusConflict,
 			Message:       "Category with this name already exists",
 			InternalError: nil,
@@ -103,7 +103,7 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 
 	createdCategory, err := category.CreateCategory()
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Failed to create category",
 			InternalError: err,
@@ -118,7 +118,7 @@ func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	// Verify admin role
 	role, ok := r.Context().Value("role").(int)
 	if !ok || role != 2 {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Admin privileges required",
 			InternalError: nil,
@@ -127,7 +127,7 @@ func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 
 	categoryId := r.URL.Query().Get("categoryId")
 	if categoryId == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Category ID is required",
 			InternalError: nil,
@@ -137,7 +137,7 @@ func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	// Get existing category
 	existingCategory, err := models.GetCategoryById(categoryId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Category not found",
 			InternalError: err,
@@ -147,7 +147,7 @@ func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	// Parse update data
 	var updatedData models.Category
 	if err := json.NewDecoder(r.Body).Decode(&updatedData); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Invalid update data",
 			InternalError: err,
@@ -160,7 +160,7 @@ func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 		if existingCategory.Name != updatedData.Name {
 			existing, err := models.GetCategoryByName(updatedData.Name)
 			if err == nil && existing != nil && existing.Id != categoryId {
-				panic(cjson.HTTPError{
+				panic(&cjson.HTTPError{
 					Status:        http.StatusConflict,
 					Message:       "Another category with this name already exists",
 					InternalError: nil,
@@ -177,7 +177,7 @@ func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 	// Save updates
 	updatedCategory, err := models.UpdateCategory(existingCategory)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Failed to update category",
 			InternalError: err,
@@ -192,7 +192,7 @@ func DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	// Verify admin role
 	role, ok := r.Context().Value("role").(int)
 	if !ok || role != 2 {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusUnauthorized,
 			Message:       "Admin privileges required",
 			InternalError: nil,
@@ -201,7 +201,7 @@ func DeleteCategory(w http.ResponseWriter, r *http.Request) {
 
 	categoryId := r.URL.Query().Get("categoryId")
 	if categoryId == "" {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusBadRequest,
 			Message:       "Category ID is required",
 			InternalError: nil,
@@ -211,7 +211,7 @@ func DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	// Check if category exists
 	_, err := models.GetCategoryById(categoryId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusNotFound,
 			Message:       "Category not found",
 			InternalError: err,
@@ -221,7 +221,7 @@ func DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	// Check if category has associated products
 	hasProducts, err := models.CategoryHasProducts(categoryId)
 	if err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Failed to check category usage",
 			InternalError: err,
@@ -229,7 +229,7 @@ func DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if hasProducts {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusConflict,
 			Message:       "Cannot delete category with associated products",
 			InternalError: nil,
@@ -238,7 +238,7 @@ func DeleteCategory(w http.ResponseWriter, r *http.Request) {
 
 	// Delete the category
 	if err := models.DeleteCategory(categoryId); err != nil {
-		panic(cjson.HTTPError{
+		panic(&cjson.HTTPError{
 			Status:        http.StatusInternalServerError,
 			Message:       "Failed to delete category",
 			InternalError: err,
