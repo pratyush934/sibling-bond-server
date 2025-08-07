@@ -82,6 +82,7 @@ func Server() {
 
 	router := mux.NewRouter()
 	router.Use(utils.ErrorHandler)
+	router.Use(utils.CORSMiddleware)
 
 	routes.SetupUserRoutes(router)
 	routes.SetupCartRoutes(router)

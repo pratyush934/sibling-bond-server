@@ -278,7 +278,7 @@ func ResetPasswordFromToken(w http.ResponseWriter, r *http.Request) {
 	token := cookie.Value
 
 	var EmailStruct struct {
-		Password string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&EmailStruct); err != nil {
