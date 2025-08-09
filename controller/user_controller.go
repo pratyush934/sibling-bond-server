@@ -95,11 +95,11 @@ func Login(w http.ResponseWriter, r *http.Request) {
 			InternalError: err,
 		})
 	}
-	randomValue := cjson.CreateRandomToken()
+	//randomValue := cjson.CreateRandomToken()
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "user-logged-in",
-		Value:    randomValue,
+		Name:     "auth_token",
+		Value:    token,
 		Expires:  time.Now().Add(time.Hour * 1),
 		Path:     "/",
 		HttpOnly: true,
@@ -115,7 +115,7 @@ func LogOut(w http.ResponseWriter, r *http.Request) {
 	/* setting expired cookie to logout */
 
 	http.SetCookie(w, &http.Cookie{
-		Name:     "user-logged-in",
+		Name:     "auth_token",
 		Value:    "",
 		Expires:  time.Now().Add(-time.Hour),
 		Path:     "/",

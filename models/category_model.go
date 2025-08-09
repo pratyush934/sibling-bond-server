@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"github.com/google/uuid"
 	"github.com/pratyush934/sibling-bond-server/database"
 	"github.com/rs/zerolog/log"
@@ -57,7 +58,10 @@ func GetCategoryById(id string) (*Category, error) {
 func GetCategoryByName(name string) (*Category, error) {
 	var category Category
 	if err := database.DB.Where(&Category{Name: name}).First(&category).Error; err != nil {
-		log.Err(err).Msg("Issue exist in GetCategoryByName")
+		// Only log if it's not the expected "record not found" error
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Err(err).Msg("Unexpected error in GetCategoryByName")
+		}
 		return nil, err
 	}
 	return &category, nil

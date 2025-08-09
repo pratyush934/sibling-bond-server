@@ -34,10 +34,11 @@ func (a *Address) BeforeCreate(t *gorm.DB) error {
 	return nil
 }
 
-func (a *Address) BeforeUpdate(t *gorm.DB) error {
-	a.Id = uuid.New().String()
-	return nil
-}
+//
+//func (a *Address) BeforeUpdate(t *gorm.DB) error {
+//	a.Id = uuid.New().String()
+//	return nil
+//}
 
 func (a *Address) Create() (*Address, error) {
 	if err := database.DB.Create(a).Error; err != nil {
