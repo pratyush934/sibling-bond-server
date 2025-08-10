@@ -73,6 +73,15 @@ func GetToken(r *http.Request) *jwt.Token {
 		}
 		return privateKey, err
 	})
+
+	if err != nil {
+		panic(&cjson.HTTPError{
+			Status:        http.StatusUnauthorized,
+			Message:       "Invalid or malformed token",
+			InternalError: err,
+		})
+	}
+
 	return parse
 }
 

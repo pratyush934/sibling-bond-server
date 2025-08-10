@@ -3,11 +3,13 @@ package main
 import (
 	"errors"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"github.com/pratyush934/sibling-bond-server/cjson"
 	"github.com/pratyush934/sibling-bond-server/database"
 	"github.com/pratyush934/sibling-bond-server/models"
 	"github.com/pratyush934/sibling-bond-server/routes"
 	"github.com/pratyush934/sibling-bond-server/utils"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 	"net/http"
 )
@@ -15,6 +17,17 @@ import (
 var (
 	httpAddr = ":5000"
 )
+
+func init() {
+	// Load environment variables from .env file
+	if err := godotenv.Load(); err != nil {
+		log.Warn().Err(err).Msg("Error loading .env file")
+	}
+	/*log.Info().
+	Str("IMAGEKIT_PUBLIC_KEY", os.Getenv("IMAGEKIT_PUBLIC_KEY")).
+	Str("IMAGEKIT_URL_ENDPOINT", os.Getenv("IMAGEKIT_URL_ENDPOINT")).
+	Msg("ImageKit environment variables loaded")*/
+}
 
 func LoadDB() {
 	if err := database.InitDB(); err != nil {
@@ -38,6 +51,7 @@ func LoadDB() {
 			&models.ProductVariant{},
 			&models.Cart{},
 			&models.CartItem{},
+			&models.Image{},
 		); err != nil {
 			panic(&cjson.HTTPError{
 				Status:        http.StatusInternalServerError,
@@ -90,6 +104,7 @@ func Server() {
 	routes.SetupProductRoutes(router)
 	routes.SetupOrderRoutes(router)
 	routes.SetupRoleRoutes(router)
+	routes.SetUpImageKitRoutes(router)
 
 	server := &http.Server{
 		Addr:    httpAddr,

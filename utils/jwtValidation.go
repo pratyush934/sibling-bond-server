@@ -34,36 +34,59 @@ func ValidateUser(next http.Handler) http.Handler {
 
 func ValidateAdmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-
 		token := GetToken(request)
 
-		claims, ok := token.Claims.(jwt.MapClaims)
-		role := (uint)(claims["role"].(float64))
-
-		if ok && token.Valid {
-
-			if role != 2 {
-				panic(&cjson.HTTPError{
-					Status:        http.StatusForbidden,
-					Message:       "Admin access required",
-					InternalError: fmt.Errorf("user role %d is not admin (required: 2)", role),
-				})
-			}
-
-			ctx := context.WithValue(request.Context(), "userId", claims["id"])
-			ctx = context.WithValue(ctx, "email", claims["email"])
-			ctx = context.WithValue(ctx, "role", claims["role"])
-			ctx = context.WithValue(ctx, "name", claims["name"])
-
-			request = request.WithContext(ctx)
-		} else {
+		if !token.Valid {
 			panic(&cjson.HTTPError{
 				Status:        http.StatusUnauthorized,
-				Message:       "there is token while validating the Token for admin role, the call is from ValidatedAdmin",
-				InternalError: fmt.Errorf("look at the Validate Middleware, I think user is not admin"),
+				Message:       "Invalid token",
+				InternalError: fmt.Errorf("token validation failed"),
 			})
 		}
 
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			panic(&cjson.HTTPError{
+				Status:        http.StatusUnauthorized,
+				Message:       "Invalid token claims",
+				InternalError: fmt.Errorf("cannot parse token claims"),
+			})
+		}
+
+		// Move role extraction here, after validation
+		roleValue, exists := claims["role"]
+		if !exists {
+			panic(&cjson.HTTPError{
+				Status:        http.StatusUnauthorized,
+				Message:       "Role claim missing",
+				InternalError: fmt.Errorf("role claim not found in token"),
+			})
+		}
+
+		roleFloat, ok := roleValue.(float64)
+		if !ok {
+			panic(&cjson.HTTPError{
+				Status:        http.StatusUnauthorized,
+				Message:       "Invalid role format",
+				InternalError: fmt.Errorf("role claim is not a number"),
+			})
+		}
+
+		role := uint(roleFloat)
+		if role != 2 {
+			panic(&cjson.HTTPError{
+				Status:        http.StatusForbidden,
+				Message:       "Admin access required",
+				InternalError: fmt.Errorf("user role %d is not admin (required: 2)", role),
+			})
+		}
+
+		ctx := context.WithValue(request.Context(), "userId", claims["id"])
+		ctx = context.WithValue(ctx, "email", claims["email"])
+		ctx = context.WithValue(ctx, "role", claims["role"])
+		ctx = context.WithValue(ctx, "name", claims["name"])
+
+		request = request.WithContext(ctx)
 		next.ServeHTTP(writer, request)
 	})
 }

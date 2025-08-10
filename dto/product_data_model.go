@@ -6,7 +6,7 @@ type ProductModel struct {
 	Price         int                 `json:"price"`
 	Stock         int                 `json:"stock"`
 	CategoryId    string              `json:"categoryId"`
-	Images        []string            `json:"images"`
+	Images        []ImageMode         `json:"images"`
 	IsActive      bool                `json:"isActive"`
 	MinStockLevel int                 `json:"minStockLevel"`
 	MaxStockLevel int                 `json:"maxStockLevel"`

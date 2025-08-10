@@ -11,23 +11,23 @@ import (
 )
 
 type Product struct {
-	Id          string         `gorm:"primaryKey;type:varchar(191)" json:"id"`
-	Name        string         `gorm:"not null" json:"name"`
-	Description string         `json:"description"`
-	Price       int            `gorm:"not null" json:"price"`
-	Stock       int            `gorm:"not null;default:0" json:"stock"`
-	CategoryId  string         `gorm:"not null;type:varchar(150)" json:"categoryId"`
-	Category    Category       `gorm:"foreignKey:CategoryId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"category"`
-	Images      []string       `gorm:"type:json;serializer:json" json:"images"`
-	IsActive    bool           `gorm:"default:true" json:"isActive"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
-	CreatedAt   time.Time      `json:"createdAt"`
-	UpdatedAt   time.Time      `json:"updatedAt"`
+	Id          string   `gorm:"primaryKey;type:varchar(191)" json:"id"`
+	Name        string   `gorm:"not null" json:"name"`
+	Description string   `json:"description"`
+	Price       int      `gorm:"not null" json:"price"`
+	Stock       int      `gorm:"not null;default:0" json:"stock"`
+	CategoryId  string   `gorm:"not null;type:varchar(150)" json:"categoryId"`
+	Category    Category `gorm:"foreignKey:CategoryId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"category"`
 
-	// Product variants/options
+	Images []Image `gorm:"foreignKey:ProductId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"images"`
+
+	IsActive  bool           `gorm:"default:true" json:"isActive"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
+
 	Variants []ProductVariant `gorm:"foreignKey:ProductId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"variants"`
 
-	// Inventory management fields
 	MinStockLevel int     `gorm:"default:5" json:"minStockLevel"`
 	MaxStockLevel int     `gorm:"default:100" json:"maxStockLevel"`
 	ReorderPoint  int     `gorm:"default:10" json:"reorderPoint"`
@@ -163,7 +163,7 @@ func GetDeleteProducts(limit, offset int) ([]Product, error) {
 
 func GetProductById(id string) (*Product, error) {
 	var product Product
-	if err := database.DB.Preload("Category").Preload("Variants").Where(&Product{Id: id}).First(&product).Error; err != nil {
+	if err := database.DB.Preload("Category").Preload("Variants").Preload("Images").Where(&Product{Id: id}).First(&product).Error; err != nil {
 		log.Err(err).Msg("Issue exist in GetProductById")
 		return nil, err
 	}
@@ -255,4 +255,38 @@ func UpdateStock(productId string, quantityChange int) error {
 		return err
 	}
 	return nil
+}
+
+func (p *Product) GetPrimaryImage() *Image {
+	for _, img := range p.Images {
+		if img.IsPrimary {
+			return &img
+		}
+	}
+	if len(p.Images) > 0 {
+		return &p.Images[0] // fallback to first image
+	}
+	return nil
+}
+
+func (p *Product) SetPrimaryImage(imageId string) error {
+	// Reset all images to non-primary
+	err := database.DB.Model(&Image{}).Where("product_id = ?", p.Id).Update("is_primary", false).Error
+	if err != nil {
+		return err
+	}
+
+	// Set specified image as primary
+	return database.DB.Model(&Image{}).Where("id = ? AND product_id = ?", imageId, p.Id).Update("is_primary", true).Error
+}
+
+func (p *Product) AddImage(url, fileName, altText string) error {
+	image := Image{
+		URL:       url,
+		FileName:  fileName,
+		AltText:   altText,
+		ProductId: p.Id,
+		SortOrder: len(p.Images),
+	}
+	return database.DB.Create(&image).Error
 }

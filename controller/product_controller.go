@@ -192,7 +192,6 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 		Price:         productModel.Price,
 		Stock:         productModel.Stock,
 		CategoryId:    productModel.CategoryId,
-		Images:        productModel.Images,
 		IsActive:      productModel.IsActive,
 		MinStockLevel: productModel.MinStockLevel,
 		MaxStockLevel: productModel.MaxStockLevel,
@@ -223,9 +222,39 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 			InternalError: err,
 		})
 	}
-	_ = cjson.WriteJSON(w, http.StatusCreated, product)
-}
 
+	if len(productModel.Images) > 0 {
+		for i, imageData := range productModel.Images {
+			image := models.Image{
+				URL:       imageData.URL,
+				FileName:  imageData.Name,
+				FieldId:   imageData.FieldId,
+				ProductId: product.Id,
+				SortOrder: i,
+				IsPrimary: i == 0,
+			}
+
+			_, err := image.CreateImage()
+			if err != nil {
+				panic(&cjson.HTTPError{
+					Status:        http.StatusBadRequest,
+					Message:       fmt.Sprintf("Not able to store the %vth image ", i),
+					InternalError: err,
+				})
+			}
+		}
+
+	}
+	productById, err := models.GetProductById(product.Id)
+
+	if err != nil {
+		_ = cjson.WriteJSON(w, http.StatusCreated, product)
+		return
+	}
+
+	_ = cjson.WriteJSON(w, http.StatusOK, productById)
+
+}
 func UpdateProductDetails(w http.ResponseWriter, r *http.Request) {
 	err := CheckAdmin(w, r)
 	if err != nil {
@@ -236,7 +265,6 @@ func UpdateProductDetails(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// Get product ID from URL params
 	vars := mux.Vars(r)
 	productId := vars["id"]
 
@@ -248,7 +276,6 @@ func UpdateProductDetails(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// First fetch the existing product to ensure it exists
 	_, err = models.GetProductById(productId)
 	if err != nil {
 		panic(&cjson.HTTPError{
@@ -267,7 +294,7 @@ func UpdateProductDetails(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// Set the product ID to ensure we update the correct record
+	// Update product WITHOUT images field
 	updateProduct := models.Product{
 		Id:            productId,
 		Name:          productModel.Name,
@@ -275,7 +302,6 @@ func UpdateProductDetails(w http.ResponseWriter, r *http.Request) {
 		Price:         productModel.Price,
 		Stock:         productModel.Stock,
 		CategoryId:    productModel.CategoryId,
-		Images:        productModel.Images,
 		IsActive:      productModel.IsActive,
 		MinStockLevel: productModel.MinStockLevel,
 		MaxStockLevel: productModel.MaxStockLevel,
@@ -286,9 +312,8 @@ func UpdateProductDetails(w http.ResponseWriter, r *http.Request) {
 		Dimensions:    productModel.Dimensions,
 	}
 
-	// Only update variants if provided
+	// Handle variants
 	if len(productModel.Variants) > 0 {
-		// First remove existing variants
 		if err := database.DB.Where("product_id = ?", productId).Delete(&models.ProductVariant{}).Error; err != nil {
 			panic(&cjson.HTTPError{
 				Status:        http.StatusInternalServerError,
@@ -297,7 +322,6 @@ func UpdateProductDetails(w http.ResponseWriter, r *http.Request) {
 			})
 		}
 
-		// Then add new variants
 		variants := make([]models.ProductVariant, 0, len(productModel.Variants))
 		for _, v := range productModel.Variants {
 			variants = append(variants, models.ProductVariant{
@@ -310,6 +334,39 @@ func UpdateProductDetails(w http.ResponseWriter, r *http.Request) {
 		updateProduct.Variants = variants
 	}
 
+	// Handle images separately if provided
+	if len(productModel.Images) > 0 {
+		// Delete existing images
+		if err := database.DB.Where("product_id = ?", productId).Delete(&models.Image{}).Error; err != nil {
+			panic(&cjson.HTTPError{
+				Status:        http.StatusInternalServerError,
+				Message:       "Failed to delete existing images",
+				InternalError: err,
+			})
+		}
+
+		// Create new images
+		for i, imageData := range productModel.Images {
+			image := models.Image{
+				URL:       imageData.URL,
+				FileName:  imageData.Name,
+				FieldId:   imageData.FieldId,
+				ProductId: productId,
+				SortOrder: i,
+				IsPrimary: i == 0,
+			}
+
+			_, err := image.CreateImage()
+			if err != nil {
+				panic(&cjson.HTTPError{
+					Status:        http.StatusInternalServerError,
+					Message:       fmt.Sprintf("Failed to create image %d", i),
+					InternalError: err,
+				})
+			}
+		}
+	}
+
 	product, err := models.UpdateProduct(&updateProduct)
 	if err != nil {
 		panic(&cjson.HTTPError{
@@ -318,7 +375,15 @@ func UpdateProductDetails(w http.ResponseWriter, r *http.Request) {
 			InternalError: err,
 		})
 	}
-	_ = cjson.WriteJSON(w, http.StatusOK, product)
+
+	// Fetch complete product with images
+	completeProduct, err := models.GetProductById(productId)
+	if err != nil {
+		_ = cjson.WriteJSON(w, http.StatusOK, product)
+		return
+	}
+
+	_ = cjson.WriteJSON(w, http.StatusOK, completeProduct)
 }
 
 func DeleteProduct(w http.ResponseWriter, r *http.Request) {
