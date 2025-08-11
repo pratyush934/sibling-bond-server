@@ -49,7 +49,8 @@ func AddItem(item *CartItem) (*CartItem, error) {
 
 func GetItemByCartAndProduct(cartID, productId string) (*CartItem, error) {
 	var cartItem CartItem
-	if err := database.DB.Where(&CartItem{CartId: cartID, ProductId: productId}).First(&cartItem).Error; err != nil {
+	if err := database.DB.Preload("Product").Where(&CartItem{CartId: cartID, ProductId: productId}).First(&cartItem).Error; err != nil {
+
 		log.Err(err).Msg("Issue persist in GetItemByCartAndProduct")
 		return nil, err
 	}
@@ -58,7 +59,7 @@ func GetItemByCartAndProduct(cartID, productId string) (*CartItem, error) {
 
 func UpdateItemQuantity(cartItemId string, newQuantity int) (*CartItem, error) {
 	var cartItem CartItem
-	if err := database.DB.Where(&CartItem{Id: cartItemId}).Update("quantity", newQuantity).Error; err != nil {
+	if err := database.DB.Model(&CartItem{}).Where(&CartItem{Id: cartItemId}).Update("quantity", newQuantity).Error; err != nil {
 
 		log.Err(err).Msg("Issue persist in UpdateItemQuantity")
 		return nil, err

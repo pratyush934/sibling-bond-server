@@ -12,7 +12,8 @@ func SetupProductRoutes(router *mux.Router) {
 	productsRouter.HandleFunc("", controller.GetAllProducts).Methods("GET")
 	productsRouter.HandleFunc("/search", controller.SearchProduct).Methods("GET")
 	productsRouter.HandleFunc("/category", controller.GetProductsByCategory).Methods("GET")
-	productsRouter.HandleFunc("/{id}", controller.GetProductById).Methods("GET")
+	productsRouter.HandleFunc("/byId", controller.GetProductById).Methods("GET")
+	productsRouter.HandleFunc("/update-stock", controller.UpdateProductQuantity).Methods("GET")
 
 	// Admin-only routes that require authentication
 	adminProductsRouter := router.PathPrefix("/api/admin/products").Subrouter()

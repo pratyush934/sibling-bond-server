@@ -11,13 +11,14 @@ import (
 )
 
 type Product struct {
-	Id          string   `gorm:"primaryKey;type:varchar(191)" json:"id"`
-	Name        string   `gorm:"not null" json:"name"`
-	Description string   `json:"description"`
-	Price       int      `gorm:"not null" json:"price"`
-	Stock       int      `gorm:"not null;default:0" json:"stock"`
-	CategoryId  string   `gorm:"not null;type:varchar(150)" json:"categoryId"`
-	Category    Category `gorm:"foreignKey:CategoryId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"category"`
+	Id          string `gorm:"primaryKey;type:varchar(191)" json:"id"`
+	Name        string `gorm:"not null" json:"name"`
+	Description string `json:"description"`
+	Price       int    `gorm:"not null" json:"price"`
+	Stock       int    `gorm:"not null;default:0" json:"stock"`
+
+	CategoryId string    `gorm:"not null;type:varchar(150);column:category_id" json:"categoryId"`
+	Category   *Category `gorm:"foreignKey:category_id;references:Id;constraint:OnUpdate:CASCADE,OnDelete:CASCADE" json:"category"`
 
 	Images []Image `gorm:"foreignKey:ProductId;constraint:onUpdate:CASCADE,onDelete:CASCADE" json:"images"`
 
@@ -100,22 +101,22 @@ func (p *Product) CanFulFillOrder(quantity int) bool {
 	return p.Stock >= quantity && p.IsActive
 }
 
-func (p *Product) UpdateStock(quantity int, operation string) error {
-
+func (p *Product) UpdateStock(quantity int, operation string) (int, error) {
 	switch operation {
 	case "add":
 		p.Stock += quantity
 	case "subtract":
 		if p.Stock < quantity {
-			return fmt.Errorf("stock is 0 can't add the stuff")
+			return p.Stock, fmt.Errorf("stock is 0 can't add the stuff")
 		}
 		p.Stock -= quantity
 	case "set":
 		p.Stock = quantity
 	default:
-		return fmt.Errorf("please add valid operation")
+		return p.Stock, fmt.Errorf("please add valid operation")
 	}
-	return database.DB.Save(p).Error
+	// Only update the stock field, not the whole struct with associations
+	return p.Stock, database.DB.Model(&Product{}).Where("id = ?", p.Id).Update("stock", p.Stock).Error
 }
 
 func (p *Product) GetStockStatus() string {
@@ -128,14 +129,13 @@ func (p *Product) GetStockStatus() string {
 	}
 }
 
-func (p *Product) ReserveStock(quantity int) error {
-	if !p.CanFulFillOrder(quantity) {
-		return fmt.Errorf("can not full fill the order")
-	}
-	return p.UpdateStock(quantity, "subtract")
-}
+//func (p *Product) ReserveStock(quantity int) error {
+//	if !p.CanFulFillOrder(quantity) {
+//		return fmt.Errorf("can not full fill the order")
+//	}
+//}
 
-func (p *Product) RestoreStock(quantity int) error {
+func (p *Product) RestoreStock(quantity int) (int, error) {
 	return p.UpdateStock(quantity, "add")
 }
 
@@ -176,6 +176,7 @@ func GetProductsByCategoryId(categoryId string, limit, offset int) ([]Product, e
 	if err := database.DB.Where(&Product{CategoryId: categoryId}).
 		Preload("Category").
 		Preload("Variants").
+		Preload("Images").
 		Limit(limit).
 		Offset(offset).
 		Find(&products).Error; err != nil {
@@ -220,7 +221,7 @@ func GetAllProducts(limit, offSet int) ([]Product, error) {
 	var products []Product
 	query := database.DB.Limit(limit).Offset(offSet)
 
-	if err := query.Find(&products).Error; err != nil {
+	if err := query.Preload("Images").Find(&products).Error; err != nil {
 		log.Err(err).Msg("Issue exist in GetAllProducts")
 		return nil, err
 	}

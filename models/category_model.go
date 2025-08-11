@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/pratyush934/sibling-bond-server/database"
 	"github.com/rs/zerolog/log"
@@ -13,7 +14,7 @@ type Category struct {
 	Id          string    `gorm:"primaryKey;type:varchar(150)" json:"id"`
 	Name        string    `gorm:"not null" json:"name"`
 	Description string    `json:"description"`
-	Products    []Product `gorm:"foreignKey:CategoryId" json:"products,omitempty"`
+	Products    []Product `gorm:"foreignKey:category_id" json:"products,omitempty"`
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
@@ -88,9 +89,10 @@ func GetAll(limit, offSet int) (*[]Category, error) {
 }
 
 func CategoryHasProducts(categoryId string) (bool, error) {
-	var products []Product
-	if err := database.DB.Where(&Category{Id: categoryId}).Find(&products).Error; err != nil {
+	var count int64
+	if err := database.DB.Model(&Product{}).Where("category_id = ?", categoryId).Count(&count).Error; err != nil {
 		return false, err
 	}
-	return len(products) > 0, nil
+	fmt.Println("The count is there and it is ", count)
+	return count > 0, nil
 }

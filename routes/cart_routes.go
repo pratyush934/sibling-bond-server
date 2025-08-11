@@ -15,9 +15,10 @@ func SetupCartRoutes(router *mux.Router) {
 	// Cart operations
 	cartRoutes.HandleFunc("", controller.GetCart).Methods("GET")
 	cartRoutes.HandleFunc("/items", controller.AddToCart).Methods("POST")
-	cartRoutes.HandleFunc("/items/{id}", controller.UpdateCartItem).Methods("PUT")
-	cartRoutes.HandleFunc("/items/{id}", controller.RemoveFromCart).Methods("DELETE")
+	cartRoutes.HandleFunc("/items", controller.UpdateCartItem).Methods("PUT")
+	cartRoutes.HandleFunc("/items", controller.RemoveFromCart).Methods("DELETE")
 	cartRoutes.HandleFunc("", controller.ClearCart).Methods("DELETE")
+	cartRoutes.HandleFunc("/total", controller.GetCartItemTotal).Methods("GET")
 
 	// Cart summary/checkout preparation
 	//cartRoutes.HandleFunc("/summary", controller.GetCartSummary).Methods("GET")

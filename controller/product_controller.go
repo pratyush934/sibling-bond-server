@@ -17,9 +17,11 @@ GetAllProducts - List all products with pagination
 GetProductById - Get details for specific product
 SearchProducts - Search products by keywords/filters
 GetProductsByCategory - List products in a category
+UpdateProductQuantity - UpdateProductQuantity
 CreateProduct - Add new product (admin only)
 UpdateProduct - Update product details (admin only)
 DeleteProduct - Remove a product (admin only)
+
 */
 
 func CheckAdmin(w http.ResponseWriter, r *http.Request) error {
@@ -67,7 +69,7 @@ func GetAllProducts(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetProductById(w http.ResponseWriter, r *http.Request) {
-	productId := r.URL.Query().Get("id")
+	productId := r.URL.Query().Get("productId")
 
 	if productId == "" {
 		panic(&cjson.HTTPError{
@@ -419,4 +421,63 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	_ = cjson.WriteJSON(w, http.StatusOK, "Product deleted successfully")
+}
+
+func UpdateProductQuantity(w http.ResponseWriter, r *http.Request) {
+
+	productId := r.URL.Query().Get("productId")
+	quantityStr := r.URL.Query().Get("quantity")
+	operationStr := r.URL.Query().Get("operation")
+	/*
+		add, subtract, set
+	*/
+	if productId == "" || quantityStr == "" || operationStr == "" {
+		panic(&cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Not getting the query parameter",
+			InternalError: fmt.Errorf("please add the query parameter"),
+		})
+	}
+
+	quantity, err := strconv.Atoi(quantityStr)
+
+	if err != nil {
+		panic(&cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Quantity failed while conversion",
+			InternalError: err,
+		})
+	}
+
+	if quantity < 0 {
+		panic(&cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Quantity should be positive",
+			InternalError: nil,
+		})
+	}
+
+	productById, err := models.GetProductById(productId)
+
+	if err != nil {
+		panic(&cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Not able to get the product via productId",
+			InternalError: err,
+		})
+	}
+	_, err = productById.UpdateStock(quantity, operationStr)
+
+	if err != nil {
+		panic(&cjson.HTTPError{
+			Status:        http.StatusBadRequest,
+			Message:       "Not able to Update the stock",
+			InternalError: err,
+		})
+	}
+
+	newProductById, err := models.GetProductById(productId)
+
+	_ = cjson.WriteJSON(w, http.StatusOK, newProductById)
+
 }
